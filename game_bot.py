@@ -98,3 +98,4 @@ def player_game():
 if __name__ == "__main__":
     player_game()
     print("hello")
+    print("hello from remote")
