@@ -55,7 +55,7 @@ class Al_solution():
 
             for dx, dy in DIRECTIONS:
                 nx, ny = x + dx, y + dy
-                if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and self.MAZE[ny][nx] == 0:
+                if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and self.MAZE[ny][nx] == 0 or self.MAZE[ny][nx] == 2:
                     f_new = g + 1 + self.heuristic((nx, ny), self.END)  # f(n) = g(n) + h(n)
                     heapq.heappush(priority_queue, (f_new, g + 1, (nx, ny), new_path))
 

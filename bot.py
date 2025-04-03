@@ -25,13 +25,14 @@ MAZE = [
     [1, 1, 1, 1, 1, 1, 1],
 ]
 
-START_POS = (1, 1)
-END_POS = (5, 3)
+START_POS = (1, 3)
+END_POS = (5, 1)
 DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
 # Giả sử thuật toán A* bạn đã import từ Al_solution
 Al = Al_solution(START_POS, END_POS, MAZE)
 bot_path = Al.a_star()  # Thuật toán A* trả về một danh sách các bước của bot
+print(bot_path)
 bot_pos = list(START_POS)
 bot_step = 0
 
@@ -67,6 +68,7 @@ def bot_game():
         # Nếu bot đã đi hết đường đi
         if bot_step < len(bot_path):
             bot_pos = list(bot_path[bot_step])
+            print(bot_pos)
             bot_step += 1
 
         # Vẽ bot
@@ -80,6 +82,7 @@ def bot_game():
         # Dừng trò chơi khi bot đã đi hết đường
         if bot_step >= len(bot_path):
             running = False
+        #     time.sleep(3)
 
     pygame.quit()
 
