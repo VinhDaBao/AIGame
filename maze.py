@@ -1,330 +1,257 @@
-import pygame
 import random
-import sys
-from collections import deque
+from typing import List, Tuple
 
-# Xử lý lỗi Pygame không khởi tạo được
-
-pygame.init()
-
-
-# Kích thước cửa sổ trò chơi
-WIDTH, HEIGHT = 800, 600
-CELL_SIZE = 40
-GRID_WIDTH = WIDTH // CELL_SIZE
-GRID_HEIGHT = HEIGHT // CELL_SIZE
-
-# Màu sắc
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-
-# Tạo cửa sổ trò chơi
-try:
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Mê cung Python")
-    clock = pygame.time.Clock()
-except pygame.error as e:
-    print(f"Lỗi tạo màn hình: {e}")
-    pygame.quit()
-    sys.exit(1)
-
-class Cell:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.walls = {"top": True, "right": True, "bottom": True, "left": True}
-        self.visited = False
-        self.is_obstacle = False
-        self.is_start = False
-        self.is_end = False
-
-    def draw(self, screen):
-        try:
-            x, y = self.x * CELL_SIZE, self.y * CELL_SIZE
+class MazeGenerator:
+    def __init__(self, width: int, height: int):
+        """
+        Khởi tạo một mê cung mới với kích thước được chỉ định.
+        
+        Args:
+            width: Chiều rộng của mê cung
+            height: Chiều cao của mê cung
+        """
+        # Đảm bảo kích thước lẻ để có tường bao quanh
+        self.width = width if width % 2 == 1 else width + 1
+        self.height = height if height % 2 == 1 else height + 1
+        # Khởi tạo ma trận mê cung với tất cả là tường (0)
+        self.maze = [[0 for _ in range(self.width)] for _ in range(self.height)]
+        
+    def remove_wall(self, x1: int, y1: int, x2: int, y2: int):
+        """
+        Phá tường giữa hai ô.
+        
+        Args:
+            x1, y1: Tọa độ ô thứ nhất
+            x2, y2: Tọa độ ô thứ hai
+        """
+        # Đánh dấu cả hai ô là đường đi
+        self.maze[y1][x1] = 1
+        self.maze[y2][x2] = 1
+        
+        # Đánh dấu ô ở giữa (tường) là đường đi
+        self.maze[(y1 + y2) // 2][(x1 + x2) // 2] = 1
+    
+    def generate(self, obstacle_percentage: float = 0) -> List[List[int]]:
+        """
+        Tạo mê cung sử dụng thuật toán Depth-First Search,
+        sau đó phá thêm tường ngẫu nhiên và thêm chướng ngại vật.
+        
+        Args:
+            obstacle_percentage: Phần trăm đường đi sẽ trở thành chướng ngại vật (0-100)
             
-            if self.is_start:
-                pygame.draw.rect(screen, GREEN, (x, y, CELL_SIZE, CELL_SIZE))
-            elif self.is_end:
-                pygame.draw.rect(screen, RED, (x, y, CELL_SIZE, CELL_SIZE))
-            elif self.is_obstacle:
-                pygame.draw.rect(screen, BLUE, (x, y, CELL_SIZE, CELL_SIZE))
+        Returns:
+            Mê cung dưới dạng ma trận với:
+            - 0: tường
+            - 1: đường đi
+            - 2: chướng ngại vật
+        """
+        # Bắt đầu từ một điểm ngẫu nhiên (luôn là số lẻ để tránh các ô tường)
+        start_x = random.randint(0, (self.width - 1) // 2) * 2 + 1
+        start_y = random.randint(0, (self.height - 1) // 2) * 2 + 1
+        
+        # Đánh dấu điểm bắt đầu là đường đi
+        self.maze[start_y][start_x] = 1
+        
+        # Danh sách các ô đã ghé thăm nhưng chưa xét hết các hướng
+        stack = [(start_x, start_y)]
+        visited = set([(start_x, start_y)])
+        
+        # GIAI ĐOẠN 1: Tạo mê cung cơ bản bằng DFS
+        while stack:
+            x, y = stack[-1]
             
-            if self.walls["top"]:
-                pygame.draw.line(screen, BLACK, (x, y), (x + CELL_SIZE, y), 2)
-            if self.walls["right"]:
-                pygame.draw.line(screen, BLACK, (x + CELL_SIZE, y), (x + CELL_SIZE, y + CELL_SIZE), 2)
-            if self.walls["bottom"]:
-                pygame.draw.line(screen, BLACK, (x, y + CELL_SIZE), (x + CELL_SIZE, y + CELL_SIZE), 2)
-            if self.walls["left"]:
-                pygame.draw.line(screen, BLACK, (x, y), (x, y + CELL_SIZE), 2)
-        except pygame.error as e:
-            print(f"Lỗi vẽ ô: {e}")
-
-class Player:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.move_cooldown = 0
-    
-    def draw(self, screen):
-        try:
-            x_center = self.x * CELL_SIZE + CELL_SIZE // 2
-            y_center = self.y * CELL_SIZE + CELL_SIZE // 2
-            pygame.draw.circle(screen, YELLOW, (x_center, y_center), CELL_SIZE // 3)
-        except pygame.error as e:
-            print(f"Lỗi vẽ người chơi: {e}")
-    
-    def move(self, direction, grid):
-        if self.move_cooldown > 0:
-            return
-        
-        new_x, new_y = self.x, self.y
-        
-        if direction == "up" and not grid[self.y][self.x].walls["top"]:
-            new_y -= 1
-        elif direction == "right" and not grid[self.y][self.x].walls["right"]:
-            new_x += 1
-        elif direction == "down" and not grid[self.y][self.x].walls["bottom"]:
-            new_y += 1
-        elif direction == "left" and not grid[self.y][self.x].walls["left"]:
-            new_x -= 1
-        
-        if 0 <= new_x < GRID_WIDTH and 0 <= new_y < GRID_HEIGHT:
-            if not grid[new_y][new_x].is_obstacle:
-                self.x, self.y = new_x, new_y
-                self.move_cooldown = 5
-
-def remove_wall(current, next_cell, direction):
-    opposite_walls = {"top": "bottom", "right": "left", "bottom": "top", "left": "right"}
-    current.walls[direction] = False
-    next_cell.walls[opposite_walls[direction]] = False
-
-def generate_maze(grid):
-    # Khởi tạo mảng 2D với đối tượng Cell
-    for y in range(GRID_HEIGHT):
-        for x in range(GRID_WIDTH):
-            grid[y][x] = Cell(x, y)
-    
-    # Tạo mê cung bằng thuật toán DFS
-    start_x, start_y = 0, 0
-    stack = [(start_x, start_y)]
-    grid[start_y][start_x].visited = True
-    
-    while stack:
-        x, y = stack[-1]
-        current = grid[y][x]
-        
-        # Tìm các ô kề chưa thăm
-        neighbors = []
-        
-        # Kiểm tra 4 hướng
-        if y > 0 and not grid[y-1][x].visited:
-            neighbors.append(("top", grid[y-1][x]))
-        if x < GRID_WIDTH - 1 and not grid[y][x+1].visited:
-            neighbors.append(("right", grid[y][x+1]))
-        if y < GRID_HEIGHT - 1 and not grid[y+1][x].visited:
-            neighbors.append(("bottom", grid[y+1][x]))
-        if x > 0 and not grid[y][x-1].visited:
-            neighbors.append(("left", grid[y][x-1]))
-        
-        if neighbors:
-            # Chọn một ô kề ngẫu nhiên
-            direction, next_cell = random.choice(neighbors)
-            # Phá tường giữa hai ô
-            remove_wall(current, next_cell, direction)
-            # Đánh dấu ô kề đã thăm
-            next_cell.visited = True
-            stack.append((next_cell.x, next_cell.y))
-        else:
-            # Quay lui nếu không có ô kề chưa thăm
-            stack.pop()
-    
-    # Tạo thêm đường đi bằng cách phá ngẫu nhiên thêm tường
-    # Đặt lại trạng thái thăm
-    for row in grid:
-        for cell in row:
-            cell.visited = False
-    
-    # Phá thêm nhiều tường để tạo nhiều đường đi
-    num_walls_to_remove = (GRID_WIDTH * GRID_HEIGHT) // 4  # 25% số tường
-    
-    for _ in range(num_walls_to_remove):
-        # Chọn một ô ngẫu nhiên
-        x = random.randint(0, GRID_WIDTH - 1)
-        y = random.randint(0, GRID_HEIGHT - 1)
-        cell = grid[y][x]
-        
-        # Chọn một hướng ngẫu nhiên để phá tường
-        walls = []
-        
-        if y > 0 and cell.walls["top"]:  # Tường phía trên
-            walls.append(("top", grid[y-1][x]))
-        if x < GRID_WIDTH - 1 and cell.walls["right"]:  # Tường phía phải
-            walls.append(("right", grid[y][x+1]))
-        if y < GRID_HEIGHT - 1 and cell.walls["bottom"]:  # Tường phía dưới
-            walls.append(("bottom", grid[y+1][x]))
-        if x > 0 and cell.walls["left"]:  # Tường phía trái
-            walls.append(("left", grid[y][x-1]))
-        
-        if walls:
-            direction, neighbor = random.choice(walls)
-            remove_wall(cell, neighbor, direction)
-
-def add_obstacles_and_points(grid):
-    # Đặt điểm bắt đầu và kết thúc
-    start_x, start_y = 0, 0
-    end_x, end_y = GRID_WIDTH - 1, GRID_HEIGHT - 1
-    
-    grid[start_y][start_x].is_start = True
-    grid[end_y][end_x].is_end = True
-    
-    # Thêm chướng ngại vật ngẫu nhiên
-    obstacles_count = (GRID_WIDTH * GRID_HEIGHT) // 20  # Khoảng 5% số ô
-    
-    # Hàm kiểm tra có đường đi từ điểm bắt đầu đến điểm kết thúc
-    def has_path():
-        visited = [[False for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-        queue = deque([(start_x, start_y)])
-        visited[start_y][start_x] = True
-        
-        while queue:
-            x, y = queue.popleft()
-            if x == end_x and y == end_y:
-                return True
+            # Các hướng có thể đi: phải, trái, xuống, lên (mỗi bước đi cách 2 ô)
+            directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
+            random.shuffle(directions)
             
-            # Kiểm tra 4 hướng
-            if y > 0 and not grid[y][x].walls["top"] and not visited[y-1][x] and not grid[y-1][x].is_obstacle:
-                visited[y-1][x] = True
-                queue.append((x, y-1))
-            if x < GRID_WIDTH - 1 and not grid[y][x].walls["right"] and not visited[y][x+1] and not grid[y][x+1].is_obstacle:
-                visited[y][x+1] = True
-                queue.append((x+1, y))
-            if y < GRID_HEIGHT - 1 and not grid[y][x].walls["bottom"] and not visited[y+1][x] and not grid[y+1][x].is_obstacle:
-                visited[y+1][x] = True
-                queue.append((x, y+1))
-            if x > 0 and not grid[y][x].walls["left"] and not visited[y][x-1] and not grid[y][x-1].is_obstacle:
-                visited[y][x-1] = True
-                queue.append((x-1, y))
-        
-        return False
-    
-    # Đặt chướng ngại vật
-    for _ in range(obstacles_count):
-        attempts = 0
-        while attempts < 50:  # Giới hạn số lần thử
-            x = random.randint(0, GRID_WIDTH - 1)
-            y = random.randint(0, GRID_HEIGHT - 1)
+            found = False
             
-            if not grid[y][x].is_start and not grid[y][x].is_end and not grid[y][x].is_obstacle:
-                # Thử đặt chướng ngại vật
-                grid[y][x].is_obstacle = True
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
                 
-                # Kiểm tra nếu vẫn có đường đi
-                if has_path():
+                # Kiểm tra xem ô mới có nằm trong mê cung và chưa được thăm chưa
+                if (0 < nx < self.width - 1 and 0 < ny < self.height - 1 and 
+                    (nx, ny) not in visited):
+                    
+                    # Phá tường giữa ô hiện tại và ô mới
+                    self.remove_wall(x, y, nx, ny)
+                    
+                    # Đánh dấu đã thăm và thêm vào stack
+                    visited.add((nx, ny))
+                    stack.append((nx, ny))
+                    found = True
                     break
-                else:
-                    grid[y][x].is_obstacle = False  # Bỏ chướng ngại vật nếu không có đường đi
             
-            attempts += 1
-
-def main():
-    try:
-        # Tạo lưới mê cung
-        grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+            # Nếu không tìm thấy hướng đi mới, quay lại
+            if not found:
+                stack.pop()
         
-        # Tạo mê cung
-        generate_maze(grid)
+        # GIAI ĐOẠN 2: Phá thêm tường ngẫu nhiên (khoảng 25% tổng số ô)
+        total_cells = (self.width // 2) * (self.height // 2)
+        walls_to_remove = total_cells // 4
         
-        # Thêm chướng ngại vật và điểm đầu/cuối
-        add_obstacles_and_points(grid)
+        for _ in range(walls_to_remove):
+            # Chọn vị trí tường ngẫu nhiên (số chẵn)
+            attempts = 0
+            while attempts < 100:  # Giới hạn số lần thử để tránh vòng lặp vô hạn
+                wall_x = random.randint(1, self.width - 2)
+                wall_y = random.randint(1, self.height - 2)
+                
+                # Kiểm tra xem đây có phải là tường và có thể phá không
+                if self.maze[wall_y][wall_x] == 0:
+                    # Kiểm tra nếu là tường ngang
+                    if wall_x % 2 == 1 and wall_y % 2 == 0:
+                        # Đảm bảo có tường ở hai bên
+                        if (self.maze[wall_y-1][wall_x] == 1 and 
+                            self.maze[wall_y+1][wall_x] == 1):
+                            self.maze[wall_y][wall_x] = 1
+                            break
+                    # Kiểm tra nếu là tường dọc
+                    elif wall_x % 2 == 0 and wall_y % 2 == 1:
+                        # Đảm bảo có tường ở hai bên
+                        if (self.maze[wall_y][wall_x-1] == 1 and 
+                            self.maze[wall_y][wall_x+1] == 1):
+                            self.maze[wall_y][wall_x] = 1
+                            break
+                attempts += 1
         
-        # Khởi tạo người chơi
-        player = Player(0, 0)
+        # Tạo lối vào và lối ra
+        entrance = (0, 1)
+        exit_point = (self.width - 1, self.height - 2)
+        self.maze[entrance[1]][entrance[0]] = 1  # Lối vào
+        self.maze[exit_point[1]][exit_point[0]] = 1  # Lối ra
         
-        # Vòng lặp trò chơi
-        running = True
-        won = False
+        # GIAI ĐOẠN 3: Thêm chướng ngại vật
+        if obstacle_percentage > 0:
+            # Tìm tất cả các ô đường đi
+            path_cells = []
+            for y in range(self.height):
+                for x in range(self.width):
+                    if self.maze[y][x] == 1 and (x, y) != entrance and (x, y) != exit_point:
+                        path_cells.append((x, y))
+            
+            # Tính số lượng chướng ngại vật cần thêm
+            num_obstacles = int(len(path_cells) * obstacle_percentage / 100)
+            
+            # Đảm bảo luôn có đường đi từ lối vào đến lối ra
+            # Tìm đường đi trước khi thêm chướng ngại vật
+            solution_path = self.solve()
+            path_set = set(solution_path)
+            
+            # Loại bỏ các ô nằm trên đường đi chính để đảm bảo luôn có giải pháp
+            safe_path_cells = [cell for cell in path_cells if cell not in path_set]
+            
+            # Thêm chướng ngại vật ngẫu nhiên
+            if num_obstacles > 0 and safe_path_cells:
+                # Đảm bảo không thêm nhiều hơn số ô an toàn
+                num_obstacles = min(num_obstacles, len(safe_path_cells))
+                obstacle_positions = random.sample(safe_path_cells, num_obstacles)
+                
+                for x, y in obstacle_positions:
+                    self.maze[y][x] = 2  # Đánh dấu là chướng ngại vật
         
-        print("Mê cung đã được tạo thành công!")
-        
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    if not won:
-                        if event.key == pygame.K_UP:
-                            player.move("up", grid)
-                        elif event.key == pygame.K_RIGHT:
-                            player.move("right", grid)
-                        elif event.key == pygame.K_DOWN:
-                            player.move("down", grid)
-                        elif event.key == pygame.K_LEFT:
-                            player.move("left", grid)
-                    
-                    if event.key == pygame.K_r:
-                        # Tạo mê cung mới
-                        print("Đang tạo mê cung mới...")
-                        grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-                        generate_maze(grid)
-                        add_obstacles_and_points(grid)
-                        player = Player(0, 0)
-                        won = False
-                        print("Mê cung mới đã được tạo!")
-                    
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-            
-            # Giảm thời gian chờ di chuyển
-            if player.move_cooldown > 0:
-                player.move_cooldown -= 1
-            
-            # Kiểm tra chiến thắng
-            if grid[player.y][player.x].is_end:
-                won = True
-            
-            # Vẽ màn hình
-            screen.fill(WHITE)
-            
-            # Vẽ mê cung
-            for row in grid:
-                for cell in row:
-                    cell.draw(screen)
-            
-            # Vẽ người chơi
-            player.draw(screen)
-            
-            # Hiển thị hướng dẫn
-            try:
-                font = pygame.font.SysFont("Arial", 24)
-                help_text = font.render("Dùng phím mũi tên để di chuyển, R để tạo mê cung mới", True, BLACK)
-                screen.blit(help_text, (10, 10))
-            except pygame.error as e:
-                print(f"Lỗi vẽ text: {e}")
-            
-            # Hiển thị thông báo chiến thắng
-            if won:
-                try:
-                    font = pygame.font.SysFont("Arial", 48)
-                    win_text = font.render("Chiến thắng! Nhấn R để chơi lại", True, BLACK)
-                    text_rect = win_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-                    screen.blit(win_text, text_rect)
-                except pygame.error as e:
-                    print(f"Lỗi vẽ thông báo chiến thắng: {e}")
-            
-            # Cập nhật màn hình
-            pygame.display.flip()
-            clock.tick(60)
+        return self.maze
     
-    except Exception as e:
-        print(f"Lỗi không xác định: {e}")
-    finally:
-        pygame.quit()
-        sys.exit()
+    def print_maze(self):
+        """
+        In mê cung ra màn hình (0: tường, 1: đường đi, 2: chướng ngại vật)
+        """
+        for row in self.maze:
+            print(' '.join(str(cell) for cell in row))
+    
+    def print_maze_visual(self):
+        """
+        In mê cung ra màn hình với ký hiệu dễ nhìn hơn
+        '█' là tường, ' ' là đường đi, 'X' là chướng ngại vật
+        """
+        for row in self.maze:
+            line = ''.join('█' if cell == 0 else ('X' if cell == 2 else ' ') for cell in row)
+            print(line)
+    
+    def solve(self) -> List[Tuple[int, int]]:
+        """
+        Giải mê cung sử dụng thuật toán BFS, tránh các chướng ngại vật
+        
+        Returns:
+            Đường đi từ lối vào đến lối ra
+        """
+        # Tìm điểm bắt đầu và kết thúc
+        start = (0, 1)
+        end = (self.width - 1, self.height - 2)
+        
+        # Kiểm tra nếu không có lối vào hoặc ra
+        if self.maze[start[1]][start[0]] == 0 or self.maze[end[1]][end[0]] == 0:
+            return []
+            
+        # Hàng đợi cho BFS
+        queue = [start]
+        # Lưu lại đường đi
+        came_from = {start: None}
+        
+        # BFS
+        while queue and end not in came_from:
+            current = queue.pop(0)
+                
+            x, y = current
+            # Các hướng có thể đi: phải, trái, xuống, lên
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                nx, ny = x + dx, y + dy
+                
+                # Kiểm tra xem ô mới có nằm trong mê cung, là đường đi (không phải tường hoặc chướng ngại vật) và chưa được thăm
+                if (0 <= nx < self.width and 0 <= ny < self.height and 
+                    self.maze[ny][nx] == 1 and (nx, ny) not in came_from):
+                    queue.append((nx, ny))
+                    came_from[(nx, ny)] = current
+        
+        # Khôi phục đường đi
+        if end not in came_from:
+            return []  # Không tìm thấy đường đi
+            
+        path = []
+        current = end
+        while current != start:
+            path.append(current)
+            current = came_from[current]
+        path.append(start)
+        path.reverse()
+        
+        return path
+    
+    def print_solution(self, path: List[Tuple[int, int]]):
+        """
+        In mê cung với đường đi
+        
+        Args:
+            path: Đường đi từ lối vào đến lối ra
+        """
+        if not path:
+            print("Không có đường đi giữa lối vào và lối ra!")
+            return
+            
+        solution = [[cell for cell in row] for row in self.maze]
+        for x, y in path:
+            # Chỉ đánh dấu đường đi trên các ô không phải chướng ngại vật
+            if solution[y][x] != 2:
+                solution[y][x] = 3  # Đánh dấu đường đi bằng số 3
+            
+        # In mê cung với đường đi
+        for row in solution:
+            line = ''.join('█' if cell == 0 else ('X' if cell == 2 else ('•' if cell == 3 else ' ')) for cell in row)
+            print(line)
 
+
+# Ví dụ sử dụng
 if __name__ == "__main__":
-    main()
+    maze = MazeGenerator(21, 11)
+    # Tạo mê cung với 5% đường đi là chướng ngại vật
+    maze.generate(obstacle_percentage=5)
+    
+    print("Mê cung (0: tường, 1: đường đi, 2: chướng ngại vật):")
+    maze.print_maze()
+    
+    print("\nMê cung (trực quan):")
+    maze.print_maze_visual()
+    
+    print("\nĐường đi qua mê cung:")
+    solution = maze.solve()
+    maze.print_solution(solution)
