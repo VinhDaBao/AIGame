@@ -30,6 +30,7 @@ class Al_solution():
                 nx, ny = x + dx, y + dy
                 if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and self.MAZE[ny][nx] == 0:
                     heapq.heappush(priority_queue, (cost + 1, (nx, ny), new_path))
+                    
 
         return []
 

@@ -22,8 +22,8 @@ MAZE = [
     [1, 1, 1, 1, 1, 1, 1],
 ]
 
-START_POS = (1, 1)
-player_pos = list(START_POS)
+START_POS = (1, 3)
+END_POS = (5, 1)
 
 # Tốc độ di chuyển
 normal_speed = 10
