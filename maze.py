@@ -131,7 +131,7 @@ class MazeGenerator:
                         path_cells.append((x, y))
             
             # Tính số lượng chướng ngại vật cần thêm
-            num_obstacles = int(len(path_cells) * obstacle_percentage / 100)
+            num_obstacles = int(len(path_cells) * obstacle_percentage / 20)
             
             # Đảm bảo luôn có đường đi từ lối vào đến lối ra
             # Tìm đường đi trước khi thêm chướng ngại vật
@@ -199,7 +199,7 @@ class MazeGenerator:
                 
                 # Kiểm tra xem ô mới có nằm trong mê cung, là đường đi (không phải tường hoặc chướng ngại vật) và chưa được thăm
                 if (0 <= nx < self.width and 0 <= ny < self.height and 
-                    self.maze[ny][nx] == 1 and (nx, ny) not in came_from):
+                    self.maze[ny][nx] != 0 and (nx, ny) not in came_from):
                     queue.append((nx, ny))
                     came_from[(nx, ny)] = current
         
