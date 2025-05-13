@@ -21,7 +21,7 @@ Trò chơi cung cấp ba chế độ chơi để trải nghiệm và đánh giá
    - Mục tiêu: Quan sát và so sánh hiệu quả của hai thuật toán khác nhau.
 
 
-*Ghi chú*: Các thuật toán tìm kiếm được áp dụng bao gồm UCS, A*, Backtracking, AND-OR Search, Genetic Algorithm và Q-Learning (chi tiết trong phần "Các thuật toán tìm kiếm").
+
 # Các Thuật Toán Tìm Kiếm Sử Dụng Trong Dự Án
 
 Dự án sử dụng 6 thuật toán tìm kiếm thuộc 6 nhóm khác nhau để giải quyết bài toán. Dưới đây là mô tả ngắn gọn về từng thuật toán:
