@@ -2,6 +2,8 @@ import pygame
 from settings import *
 from maze import MazeGenerator
 import os
+from concurrent.futures import ThreadPoolExecutor
+
 images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
@@ -17,7 +19,10 @@ class GameWindow:
         self.player1 = False
         self.player2 = False
         self.com1 = False
+        self.path1 = None
         self.com2 = False
+        self.path2 = None
+
         # Lưu level hiện tại
         self.level = level
         # Lưu vị trí ban đầu 2 người chơi
@@ -119,7 +124,6 @@ class GameWindow:
         self.scaled_background = pygame.transform.scale(self.background_img, (self.cell_size, self.cell_size))
         self.scaled_wall = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
         self.scaled_obstacle = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
-        
     def draw_maze(self, offset_x=0):
         # Vẽ mê cung với offset_x để vẽ ở khung trái hoặc phải
         for y in range(len(self.maze)):
@@ -134,7 +138,7 @@ class GameWindow:
                     self.screen.blit(self.scaled_background, (rect_x, rect_y))
                 elif cell == 2:  # Chướng ngại vật - sử dụng dirty_water image
                     self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
-        
+    
     def draw_frames(self):
         # Vẽ khung bên trái
         pygame.draw.rect(self.screen, self.WHITE, 
