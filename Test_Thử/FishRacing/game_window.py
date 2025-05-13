@@ -3,7 +3,7 @@ from settings import *
 from maze import MazeGenerator
 import os
 images = os.path.join(ASSETS_PATH,"images")
-
+font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 class GameWindow:
     def __init__(self, level="Easy",mode ="PVP"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -16,7 +16,8 @@ class GameWindow:
         # Lưu vị trí ban đầu 2 người chơi
         self.player_1_pos = [0,1]
         self.player_2_pos = [0,1]
-    
+        # Vị trí thắng
+        self.goal_pos = None
         # Màu sắc
         self.BLACK = (0, 0, 0)
         self.BLUE = (0,0,255)
@@ -37,6 +38,9 @@ class GameWindow:
         self.wall_img = pygame.image.load(os.path.join(images, "rock_wall.png"))
         self.obstacle_img = pygame.image.load(os.path.join(images, "dirty_water.png"))
         
+        self.game_run = True
+        self.end_game_time =  None
+
         # Tạo mê cung
         self.init_maze()
         
@@ -86,7 +90,8 @@ class GameWindow:
         self.maze = self.maze_generator.generate(
             obstacle_percentage=settings["obstacle_percentage"]
         )
-        
+        self.goal_pos = [maze_width -1, maze_height -2]
+
         # Tính toán vị trí bắt đầu để căn giữa mê cung trong mỗi khung
         self.maze_offset_x = int((self.frame_width - maze_width * self.cell_size) // 2)
         self.maze_offset_y = int((self.frame_height - maze_height * self.cell_size) // 2)
@@ -146,7 +151,18 @@ class GameWindow:
             if self.maze[new_y][new_x] != 0:  
                 player[0], player[1] = new_x, new_y
                 
+    def show_win_message(self, message):
+        if self.end_game_time == None:
+            self.end_game_time =  pygame.time.get_ticks()
+        elif pygame.time.get_ticks() - self.end_game_time >= 2000:
+            self.game_run = False
         
+        font = pygame.font.SysFont(font_path, 60)  
+        text = font.render(message, True, (255, 215, 0))  # vàng
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(text, text_rect)
+        pygame.display.flip()
+   
     def run(self):
         clock = pygame.time.Clock()
         running = True
@@ -155,7 +171,7 @@ class GameWindow:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                    return
+                    return False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:  # Nhấn R để tạo mê cung mới
                         self.init_maze()
@@ -167,17 +183,41 @@ class GameWindow:
             # Vẽ 2 khung và mê cung
             self.draw_frames()
             self.draw_players()
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                self.move(-1, 0,self.player_2_pos)
-            elif keys[pygame.K_RIGHT]:
-                self.move(1, 0,self.player_2_pos)
-            elif keys[pygame.K_UP]:
-                self.move(0, -1,self.player_2_pos)
-            elif keys[pygame.K_DOWN]:
-                self.move(0, 1,self.player_2_pos)
-
             self.draw_players(self.frame_width)
+            keys = pygame.key.get_pressed()
+            if self.player_2_pos != self.goal_pos:
+                if keys[pygame.K_LEFT]:
+                    self.move(-1, 0,self.player_2_pos)
+                elif keys[pygame.K_RIGHT]:
+                    self.move(1, 0,self.player_2_pos)
+                elif keys[pygame.K_UP]:
+                    self.move(0, -1,self.player_2_pos)
+                elif keys[pygame.K_DOWN]:
+                    self.move(0, 1,self.player_2_pos)
+            
+            if self.player_1_pos != self.goal_pos:
+                if keys[pygame.K_w]:
+                    self.move(0, -1,self.player_1_pos)
+                elif keys[pygame.K_s]:
+                    self.move(0, 1,self.player_1_pos)
+                elif keys[pygame.K_a]:
+                    self.move(-1, 0,self.player_1_pos)
+                elif keys[pygame.K_d]:
+                    self.move(1, 0,self.player_1_pos)
+            
+
+
+            if self.player_1_pos == self.goal_pos:
+
+                self.show_win_message("Player 1 Win!")
+
+            if self.player_2_pos == self.goal_pos:
+
+                self.show_win_message("Player 2 Win!")
+            
+            if self.game_run == False:
+                running = False
             # Cập nhật màn hình
             pygame.display.flip()
             clock.tick(FPS) 
+        return True
