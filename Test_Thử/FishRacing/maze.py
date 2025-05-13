@@ -143,7 +143,7 @@ class MazeGenerator:
                         path_cells.append((x, y))
             
             # Tính số lượng chướng ngại vật cần thêm
-            num_obstacles = int(len(path_cells) * obstacle_percentage / 20)
+            num_obstacles = int(len(path_cells) * obstacle_percentage / 50)
             
             # Đảm bảo luôn có đường đi từ lối vào đến lối ra
             # Tìm đường đi trước khi thêm chướng ngại vật
