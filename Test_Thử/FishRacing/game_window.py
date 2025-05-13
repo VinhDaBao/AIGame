@@ -8,13 +8,16 @@ images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
 class GameWindow:
-    def __init__(self, level="Easy",mode ="Player vs Player"):
+    def __init__(self, level="Easy", mode="Player vs Player", algo_left="UCS", algo_right="UCS"):
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
-        print(self.mode)
+        #Lưu thuật toán
+        self.algo_left = algo_left
+        self.algo_right = algo_right
+        print(f"GameWindow Init: Level={level}, Mode={mode}, AlgoLeft={self.algo_left}, AlgoRight={self.algo_right}")
         # Tạo trạng thái tham 
         self.player1 = False
         self.player2 = False
@@ -58,16 +61,35 @@ class GameWindow:
         # Tạo mê cung
         self.init_maze()
     def get_mode_settings(self):
-        if self.mode == "Player vs Player":
-            print("OVO")
+        if self.algo_left == "Player":
             self.player1 = True
-            self.player2 = True
-        elif self.mode == "Player vs Machine":
-            self.player1 = True
-            self.com1 = True
+            self.com1 = False
+            print("Player 1 (Left) is Human controlled.")
         else:
+            self.player1 = False
             self.com1 = True
+            print(f"Player 1 (Left) is COM controlled by {self.algo_left}.")
+
+        if self.algo_right == "Player":
+            self.player2 = True
+            self.com2 = False
+            print("Player 2 (Right) is Human controlled.")
+        else:
+            self.player2 = False
             self.com2 = True
+            print(f"Player 2 (Right) is COM controlled by {self.algo_right}.")
+
+        # self.mode có thể vẫn dùng để hiển thị thông tin chung, nhưng không quyết định control type nữa
+        # if self.mode == "Player vs Player":
+        #     print("OVO")
+        #     self.player1 = True
+        #     self.player2 = True
+        # elif self.mode == "Player vs Machine":
+        #     self.player1 = True
+        #     self.com1 = True # Đây là lỗi logic cũ, nếu P vs M thì P1 là người, P2 là máy
+        # else:
+        #     self.com1 = True
+        #     self.com2 = True
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":

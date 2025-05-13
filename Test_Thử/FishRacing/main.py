@@ -27,11 +27,11 @@ clock = pygame.time.Clock()
 main_menu = MainMenu(screen)
 mode_menu = ModeMenu(screen)
 level_menu = LevelMenu(screen)
-algorithm_menu = AlgorithmMenu(screen) # Khởi tạo AlgorithmMenu
+algorithm_menu = None # Sẽ được khởi tạo động
 
 # Trạng thái game
 current_menu = "main"  # "main", "mode", "level" hoặc "algorithm_selection"
-selected_mode = "Player vs Player"
+selected_mode = "Player vs Player" # Giá trị mặc định
 selected_level = "Easy"
 selected_algorithm_left = "UCS"  # Thuật toán mặc định cho cá trái
 selected_algorithm_right = "UCS" # Thuật toán mặc định cho cá phải
@@ -59,8 +59,46 @@ while running:
     if current_menu == "main":
         result = main_menu.handle_events(mouse_pos, current_mouse_state, mouse_just_released)
         if result == "play":
-            current_menu = "algorithm_selection" # Chuyển sang menu chọn thuật toán
-            print("Opening algorithm selection...")
+            print(f"Play clicked. Current mode: {selected_mode}")
+            if selected_mode == "Player vs Player":
+                selected_algorithm_left = "Player"
+                selected_algorithm_right = "Player"
+                print(f"Mode is Player vs Player. Skipping Algorithm Menu. Algorithms set to: Left - {selected_algorithm_left}, Right - {selected_algorithm_right}")
+                # Trực tiếp bắt đầu game
+                print(f"Starting game with Left: {selected_algorithm_left}, Right: {selected_algorithm_right}, Mode: {selected_mode}, Level: {selected_level}")
+                endless = True
+                while endless:
+                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right)
+                    endless = game_window.run()
+                screen = init_menu() # Khởi tạo lại màn hình và các menu sau khi game kết thúc
+                main_menu = MainMenu(screen)
+                mode_menu = ModeMenu(screen)
+                level_menu = LevelMenu(screen)
+                algorithm_menu = None # Đặt lại algorithm_menu
+                current_menu = "main"
+            else:
+                # Các chế độ khác cần chọn thuật toán
+                show_left_select = False
+                show_right_select = False
+                if selected_mode == "Player vs Machine": # Player (Left) vs Machine (Right)
+                    show_left_select = False
+                    show_right_select = True
+                elif selected_mode == "Machine vs Player": # Machine (Left) vs Player (Right) - Thêm nếu muốn
+                    show_left_select = True
+                    show_right_select = False
+                elif selected_mode == "Machine vs Machine":
+                    show_left_select = True
+                    show_right_select = True
+                
+                if show_left_select or show_right_select: # Chỉ hiển thị nếu có ít nhất một bên cần chọn
+                    algorithm_menu = AlgorithmMenu(screen, show_left_select=show_left_select, show_right_select=show_right_select)
+                    current_menu = "algorithm_selection"
+                    print(f"Opening algorithm selection for mode: {selected_mode} (L:{show_left_select}, R:{show_right_select})")
+                else: # Trường hợp không rõ ràng hoặc không cần chọn (ví dụ: Player vs Player đã xử lý)
+                    print(f"No algorithm selection needed for mode: {selected_mode}. This case should be handled.")
+                    # Có thể quay lại main menu hoặc xử lý khác nếu selected_mode không hợp lệ
+                    current_menu = "main" 
+
         elif result == "mode":
             current_menu = "mode"
             print("Opening mode selection...")
@@ -88,25 +126,21 @@ while running:
         if isinstance(result, dict): # Kiểm tra kết quả là dictionary (confirm hoặc back)
             if result.get("action") == "confirm":
                 selected_algorithm_left = result.get("left_algo", "UCS")
-                selected_algorithm_right = result.get("right_algo", "UCS")
+                selected_algorithm_right = result.get("right_algo", "UCS") # UCS là fallback, nhưng nên là Player nếu không hiển thị
                 print(f"Algorithms confirmed: Left - {selected_algorithm_left}, Right - {selected_algorithm_right}")
                 
-                # Tạo và chạy cửa sổ game mới
-                # LƯU Ý: GameWindow sẽ cần được cập nhật để chấp nhận các thuật toán đã chọn.
                 print(f"Starting game with Left: {selected_algorithm_left}, Right: {selected_algorithm_right}, Mode: {selected_mode}, Level: {selected_level}")
                 endless = True
                 while endless:
-                    # game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right)
-                    game_window = GameWindow(level=selected_level, mode=selected_mode) # Tạm thởi giữ nguyên
+                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right)
                     endless = game_window.run()  # Chạy cửa sổ game
                 
-                # Sau khi game kết thúc, khởi tạo lại các menu
                 screen = init_menu()
                 main_menu = MainMenu(screen)
                 mode_menu = ModeMenu(screen)
                 level_menu = LevelMenu(screen)
-                algorithm_menu = AlgorithmMenu(screen) # Khởi tạo lại cả algorithm_menu
-                current_menu = "main" # Quay về main menu sau khi game kết thúc
+                algorithm_menu = None # Đặt lại algorithm_menu
+                current_menu = "main"
 
             elif result.get("action") == "back":
                 current_menu = "main"
@@ -114,17 +148,18 @@ while running:
     
     # Cập nhật và vẽ menu hiện tại
     if current_menu == "main":
-        main_menu.update_animation()
-        main_menu.draw()
+        if main_menu: main_menu.update_animation()
+        if main_menu: main_menu.draw()
     elif current_menu == "mode":
-        mode_menu.update_animation()
-        mode_menu.draw()
+        if mode_menu: mode_menu.update_animation()
+        if mode_menu: mode_menu.draw()
     elif current_menu == "level":
-        level_menu.update_animation()
-        level_menu.draw()
+        if level_menu: level_menu.update_animation()
+        if level_menu: level_menu.draw()
     elif current_menu == "algorithm_selection":
-        algorithm_menu.update_animation()
-        algorithm_menu.draw()
+        if algorithm_menu: # Kiểm tra algorithm_menu tồn tại trước khi dùng
+            algorithm_menu.update_animation()
+            algorithm_menu.draw()
     
     # Cập nhật màn hình
     pygame.display.flip()
