@@ -16,7 +16,6 @@ FISH_FRAME_WIDTH = 64
 FISH_FRAME_HEIGHT = 64
 FISH_NUM_FRAMES = 7
 FISH_ANIM_DELAY = 5 # Adjust for animation speed (frames per game tick)
-
 class GameWindow:
     def __init__(self, level="Easy",mode ="Player vs Player",algo_left = "UCS", algo_right= "UCS"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -46,9 +45,11 @@ class GameWindow:
         self.com_1_pos = [0,1]
         self.com_1_index =0
         self.com1_slow = 0
+        self.com1_algo = algo_left
         self.com_2_pos = [0,1]
         self.com_2_index = 0
         self.com2_slow = 0
+        self.com2_algo = algo_right
         # Vị trí thắng
         self.goal_pos = None
         # Màu sắc
@@ -67,10 +68,9 @@ class GameWindow:
         pygame.display.set_caption(f"Fish Racing - {level} Level")
         
         # Load tất cả ảnh
-        self.background_img = utils.load_image("background.png") # Sử dụng utils.load_image
-        self.wall_img = utils.load_image("rock_wall.png")       # Sử dụng utils.load_image
-        self.obstacle_img = utils.load_image("dirty_water.png") # Sử dụng utils.load_image
-
+        self.background_img = pygame.image.load(os.path.join(images,"background.png"))
+        self.wall_img = pygame.image.load(os.path.join(images, "rock_wall.png"))
+        self.obstacle_img = pygame.image.load(os.path.join(images, "dirty_water.png"))
         # Load sprite sheets cá
         self.fish_left_spritesheet = utils.load_image("fish_sprite1.png")
         self.fish_right_spritesheet = utils.load_image("fish_sprite_2.png")
@@ -95,22 +95,57 @@ class GameWindow:
 
         # Tạo mê cung
         self.init_maze()
+
+
     def get_mode_settings(self):
         AI = algorithm.Al_solution(tuple(self.com_1_pos),tuple(self.goal_pos),self.maze)
-        print(AI.ucs())
+        lll =["UCS", "A*", "Backtracking", "AND-OR", "Genetic", "Q-Learning"]         
         if self.mode == "Player vs Player":
             self.player1 = True
             self.player2 = True
         elif self.mode == "Player vs Machine":
             self.player1 = True
             self.com2 = True
-            self.solver2 = executor.submit(AI.ucs)
+            if self.com2_algo == "UCS":
+                self.solver2 = executor.submit(AI.ucs)
+            elif self.com2_algo == "A*":
+                self.solver2 = executor.submit(AI.a_star)
+            elif self.com2_algo =="Backtracking":
+                self.solver2 = executor.submit(AI.backtracking)
+            elif self.com2_algo =="AND-OR":
+                self.solver2 = executor.submit(AI.and_or_search)
+            elif self.com2_algo =="Genetic":
+                self.solver2 = executor.submit(AI.genetic_algorithm)
+            else:
+                self.solver2 = executor.submit(AI.q_learning)
         else:
             self.com1 = True
-            self.solver1 = executor.submit(AI.ucs)
+            if self.com1_algo == "UCS":
+                self.solver1 = executor.submit(AI.ucs)
+            elif self.com1_algo == "A*":
+                self.solver1 = executor.submit(AI.a_star)
+            elif self.com1_algo =="Backtracking":
+                self.solver1 = executor.submit(AI.backtracking)
+            elif self.com1_algo =="AND-OR":
+                self.solver1 = executor.submit(AI.and_or_search)
+            elif self.com1_algo =="Genetic":
+                self.solver1 = executor.submit(AI.genetic_algorithm)
+            else:
+                self.solver1 = executor.submit(AI.q_learning)
 
             self.com2 = True
-            self.solver2 = executor.submit(AI.ucs)
+            if self.com2_algo == "UCS":
+                self.solver2 = executor.submit(AI.ucs)
+            elif self.com2_algo == "A*":
+                self.solver2 = executor.submit(AI.a_star)
+            elif self.com2_algo =="Backtracking":
+                self.solver2 = executor.submit(AI.backtracking)
+            elif self.com2_algo =="AND-OR":
+                self.solver2 = executor.submit(AI.and_or_search)
+            elif self.com2_algo =="Genetic":
+                self.solver2 = executor.submit(AI.genetic_algorithm)
+            else:
+                self.solver2 = executor.submit(AI.q_learning)
     def _update_animations(self):
         self.fish_anim_timer += 1
         if self.fish_anim_timer >= FISH_ANIM_DELAY:
@@ -119,7 +154,6 @@ class GameWindow:
                 self.fish_left_anim_idx = (self.fish_left_anim_idx + 1) % len(self.fish_left_frames)
             if self.fish_right_frames: # Only update if frames exist
                 self.fish_right_anim_idx = (self.fish_right_anim_idx + 1) % len(self.fish_right_frames)
-
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
@@ -154,6 +188,10 @@ class GameWindow:
         maze_width = maze_width if maze_width % 2 == 1 else maze_width - 1
         maze_height = maze_height if maze_height % 2 == 1 else maze_height - 1
         
+        # Đảm bảo kích thước tối thiểu
+        maze_width = max(5, maze_width)
+        maze_height = max(5, maze_height)
+        
         print(f"Creating {self.level} maze with dimensions: {maze_width}x{maze_height}")
         print(f"Settings: {settings}")
         
@@ -169,25 +207,9 @@ class GameWindow:
         self.maze_offset_y = int((self.frame_height - maze_height * self.cell_size) // 2)
         
         # Scale tất cả ảnh to cell size
-        if self.background_img:
-            try:
-                self.scaled_background = pygame.transform.scale(self.background_img, (self.cell_size, self.cell_size))
-            except Exception as e:
-                print(f"Error scaling background.png: {e}")
-                self.scaled_background = None # Fallback
-        if self.wall_img:
-            try:
-                self.scaled_wall = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
-            except Exception as e:
-                print(f"Error scaling rock_wall.png: {e}")
-                self.scaled_wall = None # Fallback
-        if self.obstacle_img:
-            try:
-                self.scaled_obstacle = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
-            except Exception as e:
-                print(f"Error scaling dirty_water.png: {e}")
-                self.scaled_obstacle = None # Fallback
-
+        self.scaled_background = pygame.transform.scale(self.background_img, (self.cell_size, self.cell_size))
+        self.scaled_wall = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
+        self.scaled_obstacle = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
         # Process fish sprite sheets for animation
         if self.fish_left_spritesheet:
             self.fish_left_frames = [] # Ensure list is empty
@@ -222,21 +244,12 @@ class GameWindow:
                 rect_x = offset_x + self.maze_offset_x + x * self.cell_size
                 rect_y = self.maze_offset_y + y * self.cell_size
                 
-                # Luôn vẽ background trước
-                if self.scaled_background: # Kiểm tra nếu ảnh background load được
-                    self.screen.blit(self.scaled_background, (rect_x, rect_y))
-                else: # Fallback nếu ảnh background lỗi
-                    pygame.draw.rect(self.screen, self.WHITE, (rect_x, rect_y, self.cell_size, self.cell_size))
-
                 if cell == 0:  # Tường - sử dụng rock_wall image
-                    if self.scaled_wall:
-                        self.screen.blit(self.scaled_wall, (rect_x, rect_y))
-                    # Không có fallback cho tường, vì nếu tường lỗi thì nền trắng sẽ hiện ra
+                    self.screen.blit(self.scaled_wall, (rect_x, rect_y))
+                elif cell == 1:  # Đường đi - sử dụng background image
+                    self.screen.blit(self.scaled_background, (rect_x, rect_y))
                 elif cell == 2:  # Chướng ngại vật - sử dụng dirty_water image
-                    if self.scaled_obstacle:
-                        self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
-                    # Fallback cho chướng ngại vật có thể là một màu khác nếu muốn
-                # Ô cell == 1 (đường đi) đã được xử lý bằng cách vẽ background ở trên
+                    self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
     
     def draw_frames(self):
         # Vẽ khung bên trái
@@ -268,12 +281,10 @@ class GameWindow:
             color_player = self.BLACK
         elif offset_x != 0 and not isplayer:
             x,y = self.com_2_pos
-            # color_player = self.RED # Sẽ được xử lý bởi logic chọn ảnh/fallback bên dưới
-            # print(x,y) # Loại bỏ dòng debug
-        
+            color_player = self.RED
+            print(x,y)
         location_x = x * self.cell_size + self.maze_offset_x + offset_x
-        location_y = y * self.cell_size + self.maze_offset_y
-
+        location_y = y * self.cell_size +self.maze_offset_y
         current_fish_image = None
         fallback_color = self.BLACK
         facing_right_state = True # Default, assuming sprite faces right
@@ -357,44 +368,35 @@ class GameWindow:
             
             # Vẽ 2 khung và mê cung 
             self.draw_frames()
-            self._update_animations() # Update fish animations
             if self.player1 == True:
                 self.draw_players()
             if self.player2 == True:
                 self.draw_players(offset_x=self.frame_width)
-            if now >= self.com1_slow:
-                if self.com1 == True:
-                    if self.solver1 is not None and self.solver1.done():
-                        self.path1 = self.solver1.result()
-                        self.solver1 = None
-                    if self.path1 is not None and self.com_1_index < len(self.path1):
-                        old_x_com1 = self.com_1_pos[0]
-                        self.com_1_pos = list(self.path1[self.com_1_index])
-                        new_x_com1 = self.com_1_pos[0]
-                        if new_x_com1 < old_x_com1:
-                            self.com_1_facing_right = False
-                        elif new_x_com1 > old_x_com1:
-                            self.com_1_facing_right = True
-                        self.com1_slow = now + aldelay
-                        if self.com_1_index < len(self.path1)-1:
-                            self.com_1_index+=1
-            if now >= self.com2_slow:
-                if self.com2 == True:
-                    if self.solver2 is not None and self.solver2.done():
-                        self.path2 = self.solver2.result()
-                        print(self.path2)
-                        self.solver2 = None
-                    if self.path2 is not None and self.com_2_index < len(self.path2):
-                        old_x_com2 = self.com_2_pos[0]
-                        self.com_2_pos = list(self.path2[self.com_2_index])
-                        new_x_com2 = self.com_2_pos[0]
-                        if new_x_com2 < old_x_com2:
-                            self.com_2_facing_right = False
-                        elif new_x_com2 > old_x_com2:
-                            self.com_2_facing_right = True
-                        self.com2_slow = now + aldelay
-                        if self.com_2_index < len(self.path2)-1:
-                            self.com_2_index+=1
+            if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos and  self.com_1_pos != self.goal_pos and  self.com_2_pos != self.goal_pos:
+
+                if now >= self.com1_slow:
+                    if self.com1 == True:
+                        if self.solver1 is not None and self.solver1.done():
+                            self.path1 = self.solver1.result()
+                            self.solver1 = None
+                        if self.path1 is not None:
+                            self.com_1_pos = list(self.path1[self.com_1_index])
+                            x,y= self.com_1_pos
+                            self.com1_slow = now + aldelay + 200 if self.maze[y][x] == 2 else 0
+                            if self.com_1_index < len(self.path1)-1:
+                                self.com_1_index+=1
+                if now >= self.com2_slow:
+                    if self.com2 == True:
+                        if self.solver2 is not None and self.solver2.done():
+                            self.path2 = self.solver2.result()  
+                            print(self.path2)
+                            self.solver2 = None  
+                        if self.path2 is not None:
+                            self.com_2_pos = list(self.path2[self.com_2_index])
+                            x,y = self.com_2_pos
+                            self.com2_slow = now + aldelay + 200 if self.maze[y][x] == 2 else 0
+                            if self.com_2_index < len(self.path2)-1:
+                                self.com_2_index+=1
                                 
             if self.com1 == True:                 
                 self.draw_players(isplayer=False)
@@ -402,44 +404,43 @@ class GameWindow:
                 self.draw_players(self.frame_width, isplayer=False) 
             keys = pygame.key.get_pressed()
             if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos and  self.com_1_pos != self.goal_pos and  self.com_2_pos != self.goal_pos:
-                # Player 2 (Arrow keys)
                 if now >= self.delay2time:
                     moved2 = False
                     if keys[pygame.K_LEFT]:
-                        self.move(-1, 0, self.player_2_pos)
-                        self.player_2_facing_right = False # Moved left
+                        self.move(-1, 0,self.player_2_pos)
                         moved2 = True
+
                     elif keys[pygame.K_RIGHT]:
-                        self.move(1, 0, self.player_2_pos)
-                        self.player_2_facing_right = True  # Moved right
+                        self.move(1, 0,self.player_2_pos)
                         moved2 = True
+
                     elif keys[pygame.K_UP]:
-                        self.move(0, -1,self.player_2_pos) # Vertical move, no change
+                        self.move(0, -1,self.player_2_pos)
                         moved2 = True
+
                     elif keys[pygame.K_DOWN]:
-                        self.move(0, 1,self.player_2_pos)  # Vertical move, no change
+                        self.move(0, 1,self.player_2_pos)
                         moved2 = True
                     if (moved2):
                         x,y = self.player_2_pos
                         if self.maze[y][x] == 2:
                             self.delay2time = now + cooldowns
-                
-                # Player 1 (WASD)
+
                 if now >= self.delay1time:
                     moved1 = False
-                    if keys[pygame.K_a]:
-                        self.move(-1, 0, self.player_1_pos)
-                        self.player_1_facing_right = False # Moved left
-                        moved1 = True
-                    elif keys[pygame.K_d]:
-                        self.move(1, 0, self.player_1_pos)
-                        self.player_1_facing_right = True  # Moved right
-                        moved1 = True
-                    elif keys[pygame.K_w]:
-                        self.move(0, -1,self.player_1_pos) # Vertical move, no change in horizontal facing
+                
+                    if keys[pygame.K_w]:
+                        self.move(0, -1,self.player_1_pos)
                         moved1 = True
                     elif keys[pygame.K_s]:
-                        self.move(0, 1,self.player_1_pos)  # Vertical move, no change in horizontal facing
+                        self.move(0, 1,self.player_1_pos)
+                        moved1 = True
+
+                    elif keys[pygame.K_a]:
+                        self.move(-1, 0,self.player_1_pos)
+                        moved1 = True
+                    elif keys[pygame.K_d]:
+                        self.move(1, 0,self.player_1_pos)
                         moved1 = True
                     if (moved1):
                         x,y = self.player_1_pos
