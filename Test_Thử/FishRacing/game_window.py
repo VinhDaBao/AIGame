@@ -3,28 +3,29 @@ from settings import *
 from maze import MazeGenerator
 import os
 from concurrent.futures import ThreadPoolExecutor
-
+import algorithm
 images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
+executor = ThreadPoolExecutor(max_workers=1)
+aldelay = 100
 class GameWindow:
-    def __init__(self, level="Easy", mode="Player vs Player", algo_left="UCS", algo_right="UCS"):
+    def __init__(self, level="Easy",mode ="Player vs Player",algo_left = "UCS", algo_right= "UCS"):
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
-        #Lưu thuật toán
-        self.algo_left = algo_left
-        self.algo_right = algo_right
-        print(f"GameWindow Init: Level={level}, Mode={mode}, AlgoLeft={self.algo_left}, AlgoRight={self.algo_right}")
+        print(algo_left,algo_right)
         # Tạo trạng thái tham 
         self.player1 = False
         self.player2 = False
         self.com1 = False
         self.path1 = None
+        self.solver1  = None
         self.com2 = False
         self.path2 = None
+        self.solver2= None
 
         # Lưu level hiện tại
         self.level = level
@@ -33,6 +34,13 @@ class GameWindow:
         self.delay1time = 0
         self.player_2_pos = [0,1]
         self.delay2time = 0
+        # Lưu vị trí com
+        self.com_1_pos = [0,1]
+        self.com_1_index =0
+        self.com1_slow = 0
+        self.com_2_pos = [0,1]
+        self.com_2_index = 0
+        self.com2_slow = 0
         # Vị trí thắng
         self.goal_pos = None
         # Màu sắc
@@ -61,35 +69,21 @@ class GameWindow:
         # Tạo mê cung
         self.init_maze()
     def get_mode_settings(self):
-        if self.algo_left == "Player":
+        AI = algorithm.Al_solution(tuple(self.com_1_pos),tuple(self.goal_pos),self.maze)
+        print(AI.ucs())
+        if self.mode == "Player vs Player":
             self.player1 = True
-            self.com1 = False
-            print("Player 1 (Left) is Human controlled.")
-        else:
-            self.player1 = False
-            self.com1 = True
-            print(f"Player 1 (Left) is COM controlled by {self.algo_left}.")
-
-        if self.algo_right == "Player":
             self.player2 = True
-            self.com2 = False
-            print("Player 2 (Right) is Human controlled.")
-        else:
-            self.player2 = False
+        elif self.mode == "Player vs Machine":
+            self.player1 = True
             self.com2 = True
-            print(f"Player 2 (Right) is COM controlled by {self.algo_right}.")
+            self.solver2 = executor.submit(AI.ucs)
+        else:
+            self.com1 = True
+            self.solver1 = executor.submit(AI.ucs)
 
-        # self.mode có thể vẫn dùng để hiển thị thông tin chung, nhưng không quyết định control type nữa
-        # if self.mode == "Player vs Player":
-        #     print("OVO")
-        #     self.player1 = True
-        #     self.player2 = True
-        # elif self.mode == "Player vs Machine":
-        #     self.player1 = True
-        #     self.com1 = True # Đây là lỗi logic cũ, nếu P vs M thì P1 là người, P2 là máy
-        # else:
-        #     self.com1 = True
-        #     self.com2 = True
+            self.com2 = True
+            self.solver2 = executor.submit(AI.ucs)
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
@@ -179,16 +173,24 @@ class GameWindow:
         
         # Vẽ mê cung trong khung phải
         self.draw_maze(self.frame_width)
-    def draw_players(self,offset_x=0):
-        if offset_x == 0:
+    def draw_players(self,offset_x=0,isplayer = True):
+        if offset_x == 0 and isplayer:
             x,y = self.player_1_pos
             color_player = self.BLUE
-        else:
+        elif offset_x !=  0  and isplayer:
             x,y = self.player_2_pos
             color_player = self.RED
+        elif offset_x == 0 and not isplayer:
+            x,y = self.com_1_pos
+            color_player = self.BLACK
+        elif offset_x != 0 and not isplayer:
+            x,y = self.com_2_pos
+            color_player = self.RED
+            print(x,y)
         location_x = x * self.cell_size + self.maze_offset_x + offset_x
         location_y = y * self.cell_size +self.maze_offset_y
         pygame.draw.rect(self.screen,color_player,(location_x,location_y,self.cell_size,self.cell_size))
+    
     def move(self,dx, dy,player):
         new_x = player[0] + dx
         new_y = player[1] + dy
@@ -215,6 +217,7 @@ class GameWindow:
         
         while running:
             now = pygame.time.get_ticks()
+            #Đặt thuật toán lấy đường đi ở luồng khác tránh ngừng chương trình
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -223,6 +226,12 @@ class GameWindow:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:  # Nhấn R để tạo mê cung mới
                         self.init_maze()
+                        self.get_mode_settings()
+                        self.player_1_pos = [0,1]
+                        self.player_2_pos = [0,1]
+                        self.com_1_pos = [0,1]
+                        self.com_2_pos = [0,1]
+
                     
             
             # Xóa màn hình
@@ -233,9 +242,35 @@ class GameWindow:
             if self.player1 == True:
                 self.draw_players()
             if self.player2 == True:
-                self.draw_players(self.frame_width)
+                self.draw_players(offset_x=self.frame_width)
+            if now >= self.com1_slow:
+                if self.com1 == True:
+                    if self.solver1 is not None and self.solver1.done():
+                        self.path1 = self.solver1.result()
+                        self.solver1 = None
+                    if self.path1 is not None:
+                        self.com_1_pos = list(self.path1[self.com_1_index])
+                        self.com1_slow = now + aldelay
+                        if self.com_1_index < len(self.path1)-1:
+                            self.com_1_index+=1
+            if now >= self.com2_slow:
+                if self.com2 == True:
+                    if self.solver2 is not None and self.solver2.done():
+                        self.path2 = self.solver2.result()  
+                        print(self.path2)
+                        self.solver2 = None  
+                    if self.path2 is not None:
+                        self.com_2_pos = list(self.path2[self.com_2_index])
+                        self.com2_slow = now + aldelay
+                        if self.com_2_index < len(self.path2)-1:
+                            self.com_2_index+=1
+                                
+            if self.com1 == True:                 
+                self.draw_players(isplayer=False)
+            if self.com2 == True:
+                self.draw_players(self.frame_width, isplayer=False) 
             keys = pygame.key.get_pressed()
-            if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos:
+            if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos and  self.com_1_pos != self.goal_pos and  self.com_2_pos != self.goal_pos:
                 if now >= self.delay2time:
                     moved2 = False
                     if keys[pygame.K_LEFT]:
@@ -289,7 +324,10 @@ class GameWindow:
             if self.player_2_pos == self.goal_pos:
 
                 self.show_win_message("Player 2 Win!")
-            
+            if self.com_1_pos == self.goal_pos:
+                self.show_win_message("Computer 1 Win!")
+            if self.com_2_pos == self.goal_pos:
+                self.show_win_message("Computer 2 Win!")
             if self.game_run == False:
                 running = False
             # Cập nhật màn hình

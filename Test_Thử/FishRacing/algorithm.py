@@ -2,7 +2,7 @@ import heapq
 import random
 import numpy as np
 from collections import defaultdict, deque
-
+import maze
 DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Các hướng di chuyển (lên, xuống, trái, phải)
 
 class Al_solution():
@@ -34,11 +34,11 @@ class Al_solution():
                 if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and (self.MAZE[ny][nx] == 1 or self.MAZE[ny][nx] == 2):
                     heapq.heappush(priority_queue, (cost + 1, (nx, ny), new_path))
 
-        return []
+        return None
 
     def heuristic(self, current, end):
         # Hàm heuristic tính khoảng cách Manhattan
-        return abs(current[0] - end[0]) + abs(current[1] - end[1])
+        return abs(current[0] - end[0]) + abs(current[1] - end[1]) + 3 if self.MAZE[current[1]][current[0]] == 2 else 0 
 
     def a_star(self):
         priority_queue = [(0 + self.heuristic(self.START, self.END), 0, self.START, [])]  # (f(n), g(n), (x, y), path)
@@ -62,7 +62,7 @@ class Al_solution():
                     f_new = g + 1 + self.heuristic((nx, ny), self.END)
                     heapq.heappush(priority_queue, (f_new, g + 1, (nx, ny), new_path))
 
-        return []
+        return None
 
     def backtracking(self):
         """
@@ -87,7 +87,7 @@ class Al_solution():
             return None
         
         result = dfs(self.START, [], set())
-        return result if result else []
+        return result if result else None
 
 
     def and_or_search(self):
@@ -109,7 +109,7 @@ class Al_solution():
             return or_search(state, path, visited)
 
         solutions = or_search(self.START, [], set())
-        return solutions[0] if solutions else []
+        return solutions[0] if solutions else None
 
     def genetic_algorithm(self, population_size=50, generations=100):
         def generate_path():
@@ -181,7 +181,7 @@ class Al_solution():
         best_path = max(population, key=fitness)
         if best_path[-1] == self.END:
             return best_path
-        return []
+        return None
 
     def q_learning(self, episodes=1000, alpha=0.1, gamma=0.9, epsilon=0.1):
         q_table = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # [up, down, left, right]
@@ -222,58 +222,55 @@ class Al_solution():
                 break
         if path[-1] == self.END:
             return path
-        return []
+        return None
+if __name__ =="__main__":
+    # Mê cung
+    maze = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 0],
+        [0, 2, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0],
+        [0, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 2, 1, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 2, 0, 1, 1, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 2, 0, 2, 0, 1, 0, 0, 0],
+        [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0],
+        [0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+        [0, 1, 1, 2, 1, 1, 2, 1, 0, 2, 1, 2, 1, 2, 0, 2, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ]
 
-# Mê cung
-maze = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 0],
-    [0, 2, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0],
-    [0, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
-    [0, 2, 1, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 1, 1, 2, 0, 1, 1, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 2, 0, 2, 0, 1, 0, 0, 0],
-    [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0],
-    [0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    [0, 1, 1, 2, 1, 1, 2, 1, 0, 2, 1, 2, 1, 2, 0, 2, 1, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-]
+    start = (0, 1)
+    end = (20, 9)
 
-start = (1, 1)
-end = (20, 9)
+    # Khởi tạo và chạy thử
+    solver = Al_solution(start, end, maze)
 
-# Khởi tạo và chạy thử
-solver = Al_solution(start, end, maze)
+    # Chạy các thuật toán
+    print("Đường đi UCS:", solver.ucs())
+    print("Độ dài đường đi UCS:", len(solver.ucs()))
+    print("Đường đi A*:", solver.a_star())
+    print("Độ dài đường đi A*:", len(solver.a_star()))
+    print("Đường đi backtracking:", solver.backtracking())
+    print("Độ dài đường đi backtracking:", len(solver.backtracking()))
+    print("Đường đi AND-OR Search:", solver.and_or_search())
+    print("Độ dài đường đi AND-OR Search:", len(solver.and_or_search()))
+    print("Đường đi Q-Learning:", solver.q_learning())
+    print("Độ dài đường đi Q-Learning:", len(solver.q_learning()))
 
-# Chạy các thuật toán
-print("Đường đi UCS:", solver.ucs())
-print("Độ dài đường đi UCS:", len(solver.ucs()))
-print("Đường đi A*:", solver.a_star())
-print("Độ dài đường đi A*:", len(solver.a_star()))
-print("Đường đi backtracking:", solver.backtracking())
-print("Độ dài đường đi backtracking:", len(solver.backtracking()))
-print("Đường đi AND-OR Search:", solver.and_or_search())
-print("Độ dài đường đi AND-OR Search:", len(solver.and_or_search()))
-print("Đường đi Genetic Algorithm:", solver.genetic_algorithm())
-print("Độ dài đường đi Genetic Algorithm:", len(solver.genetic_algorithm()))
-print("Đường đi Q-Learning:", solver.q_learning())
-print("Độ dài đường đi Q-Learning:", len(solver.q_learning()))
+    # In mê cung với đường đi
+    def print_maze_with_path(maze, path, title):
+        maze_copy = [row[:] for row in maze]
+        for x, y in path:
+            if (x, y) != start and (x, y) != end:
+                maze_copy[y][x] = '*'
+        maze_copy[start[1]][start[0]] = 'S'
+        maze_copy[end[1]][end[0]] = 'E'
+        print(f"\n{title}:")
+        for row in maze_copy:
+            print(' '.join(str(cell) for cell in row))
 
-# In mê cung với đường đi
-def print_maze_with_path(maze, path, title):
-    maze_copy = [row[:] for row in maze]
-    for x, y in path:
-        if (x, y) != start and (x, y) != end:
-            maze_copy[y][x] = '*'
-    maze_copy[start[1]][start[0]] = 'S'
-    maze_copy[end[1]][end[0]] = 'E'
-    print(f"\n{title}:")
-    for row in maze_copy:
-        print(' '.join(str(cell) for cell in row))
-
-print_maze_with_path(maze, solver.ucs(), "Mê cung với đường đi UCS")
-print_maze_with_path(maze, solver.a_star(), "Mê cung với đường đi A*")
-print_maze_with_path(maze, solver.backtracking(), "Mê cung với đường đi backtracking")
-print_maze_with_path(maze, solver.and_or_search(), "Mê cung với đường đi AND-OR Search")
-print_maze_with_path(maze, solver.genetic_algorithm(), "Mê cung với đường đi Genetic Algorithm")
-print_maze_with_path(maze, solver.q_learning(), "Mê cung với đường đi Q-Learning")
+    print_maze_with_path(maze, solver.ucs(), "Mê cung với đường đi UCS")
+    print_maze_with_path(maze, solver.a_star(), "Mê cung với đường đi A*")
+    print_maze_with_path(maze, solver.backtracking(), "Mê cung với đường đi backtracking")
+    print_maze_with_path(maze, solver.and_or_search(), "Mê cung với đường đi AND-OR Search")
+    print_maze_with_path(maze, solver.q_learning(), "Mê cung với đường đi Q-Learning")
