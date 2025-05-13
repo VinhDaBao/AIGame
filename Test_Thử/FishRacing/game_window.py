@@ -185,7 +185,7 @@ class GameWindow:
             self.draw_players()
             self.draw_players(self.frame_width)
             keys = pygame.key.get_pressed()
-            if self.player_2_pos != self.goal_pos:
+            if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos:
                 if keys[pygame.K_LEFT]:
                     self.move(-1, 0,self.player_2_pos)
                 elif keys[pygame.K_RIGHT]:
@@ -195,7 +195,6 @@ class GameWindow:
                 elif keys[pygame.K_DOWN]:
                     self.move(0, 1,self.player_2_pos)
             
-            if self.player_1_pos != self.goal_pos:
                 if keys[pygame.K_w]:
                     self.move(0, -1,self.player_1_pos)
                 elif keys[pygame.K_s]:
