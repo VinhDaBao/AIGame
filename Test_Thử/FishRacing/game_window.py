@@ -1,7 +1,8 @@
 import pygame
 from settings import *
 from maze import MazeGenerator
-
+import os
+images = os.path.join(ASSETS_PATH,"images")
 class GameWindow:
     def __init__(self, level="Easy"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -25,9 +26,9 @@ class GameWindow:
         pygame.display.set_caption(f"Fish Racing - {level} Level")
         
         # Load tất cả ảnh
-        self.background_img = pygame.image.load(ASSETS_PATH + "images/background.png")
-        self.wall_img = pygame.image.load(ASSETS_PATH + "images/rock_wall.png")
-        self.obstacle_img = pygame.image.load(ASSETS_PATH + "images/dirty_water.png")
+        self.background_img = pygame.image.load(os.path.join(images,"background.png"))
+        self.wall_img = pygame.image.load(os.path.join(images, "rock_wall.png"))
+        self.obstacle_img = pygame.image.load(os.path.join(images, "dirty_water.png"))
         
         # Tạo mê cung
         self.init_maze()
