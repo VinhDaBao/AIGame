@@ -51,7 +51,7 @@ class MazeGenerator:
         print(start_x,start_y)
         # Đánh dấu điểm bắt đầu là đường đi
         
-        self.maze[start_y,start_x]= 1
+        self.maze[start_y][start_x]= 1
         
         # Danh sách các ô đã ghé thăm nhưng chưa xét hết các hướng
         stack = [(start_x, start_y)]
