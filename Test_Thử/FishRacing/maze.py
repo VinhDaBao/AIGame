@@ -46,11 +46,12 @@ class MazeGenerator:
             - 2: chướng ngại vật
         """
         # Bắt đầu từ một điểm ngẫu nhiên (luôn là số lẻ để tránh các ô tường)
-        start_x = random.randint(0, (self.width - 1) // 2) * 2 + 1
-        start_y = random.randint(0, (self.height - 1) // 2) * 2 + 1
-        
+        start_x = random.randint(0, (self.width - 1) // 2) * 2 -1
+        start_y = random.randint(0, (self.height - 1) // 2) * 2 - 1
+        print(start_x,start_y)
         # Đánh dấu điểm bắt đầu là đường đi
         self.maze[start_y][start_x] = 1
+        
         
         # Danh sách các ô đã ghé thăm nhưng chưa xét hết các hướng
         stack = [(start_x, start_y)]
