@@ -4,11 +4,11 @@ from maze import MazeGenerator
 import os
 images = os.path.join(ASSETS_PATH,"images")
 class GameWindow:
-    def __init__(self, level="Easy"):
+    def __init__(self, level="Easy",mode ="PVP"):
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
-        
+        self.mode = mode
         # Lưu level hiện tại
         self.level = level
         
@@ -122,7 +122,8 @@ class GameWindow:
         
         # Vẽ mê cung trong khung phải
         self.draw_maze(self.frame_width)
-    
+    def draw_players(self):
+        pass
     def run(self):
         clock = pygame.time.Clock()
         running = True
