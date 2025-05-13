@@ -4,11 +4,19 @@ from maze import MazeGenerator
 import os
 from concurrent.futures import ThreadPoolExecutor
 import algorithm
+import utils # Thêm import utils
 images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
 executor = ThreadPoolExecutor(max_workers=1)
 aldelay = 100
+
+# Fish animation constants
+FISH_FRAME_WIDTH = 64
+FISH_FRAME_HEIGHT = 64
+FISH_NUM_FRAMES = 7
+FISH_ANIM_DELAY = 5 # Adjust for animation speed (frames per game tick)
+
 class GameWindow:
     def __init__(self, level="Easy",mode ="Player vs Player",algo_left = "UCS", algo_right= "UCS"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -59,9 +67,28 @@ class GameWindow:
         pygame.display.set_caption(f"Fish Racing - {level} Level")
         
         # Load tất cả ảnh
-        self.background_img = pygame.image.load(os.path.join(images,"background.png"))
-        self.wall_img = pygame.image.load(os.path.join(images, "rock_wall.png"))
-        self.obstacle_img = pygame.image.load(os.path.join(images, "dirty_water.png"))
+        self.background_img = utils.load_image("background.png") # Sử dụng utils.load_image
+        self.wall_img = utils.load_image("rock_wall.png")       # Sử dụng utils.load_image
+        self.obstacle_img = utils.load_image("dirty_water.png") # Sử dụng utils.load_image
+
+        # Load sprite sheets cá
+        self.fish_left_spritesheet = utils.load_image("fish_sprite1.png")
+        self.fish_right_spritesheet = utils.load_image("fish_sprite_2.png")
+        
+        # Lists to hold animation frames for each fish
+        self.fish_left_frames = []
+        self.fish_right_frames = []
+
+        # Animation state variables
+        self.fish_left_anim_idx = 0
+        self.fish_right_anim_idx = 0
+        self.fish_anim_timer = 0
+
+        # Fish orientation state (True if facing right, False if facing left)
+        self.player_1_facing_right = True
+        self.player_2_facing_right = True
+        self.com_1_facing_right = True
+        self.com_2_facing_right = True
         
         self.game_run = True
         self.end_game_time =  None
@@ -84,6 +111,15 @@ class GameWindow:
 
             self.com2 = True
             self.solver2 = executor.submit(AI.ucs)
+    def _update_animations(self):
+        self.fish_anim_timer += 1
+        if self.fish_anim_timer >= FISH_ANIM_DELAY:
+            self.fish_anim_timer = 0
+            if self.fish_left_frames: # Only update if frames exist
+                self.fish_left_anim_idx = (self.fish_left_anim_idx + 1) % len(self.fish_left_frames)
+            if self.fish_right_frames: # Only update if frames exist
+                self.fish_right_anim_idx = (self.fish_right_anim_idx + 1) % len(self.fish_right_frames)
+
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
@@ -118,10 +154,6 @@ class GameWindow:
         maze_width = maze_width if maze_width % 2 == 1 else maze_width - 1
         maze_height = maze_height if maze_height % 2 == 1 else maze_height - 1
         
-        # Đảm bảo kích thước tối thiểu
-        maze_width = max(5, maze_width)
-        maze_height = max(5, maze_height)
-        
         print(f"Creating {self.level} maze with dimensions: {maze_width}x{maze_height}")
         print(f"Settings: {settings}")
         
@@ -137,9 +169,51 @@ class GameWindow:
         self.maze_offset_y = int((self.frame_height - maze_height * self.cell_size) // 2)
         
         # Scale tất cả ảnh to cell size
-        self.scaled_background = pygame.transform.scale(self.background_img, (self.cell_size, self.cell_size))
-        self.scaled_wall = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
-        self.scaled_obstacle = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
+        if self.background_img:
+            try:
+                self.scaled_background = pygame.transform.scale(self.background_img, (self.cell_size, self.cell_size))
+            except Exception as e:
+                print(f"Error scaling background.png: {e}")
+                self.scaled_background = None # Fallback
+        if self.wall_img:
+            try:
+                self.scaled_wall = pygame.transform.scale(self.wall_img, (self.cell_size, self.cell_size))
+            except Exception as e:
+                print(f"Error scaling rock_wall.png: {e}")
+                self.scaled_wall = None # Fallback
+        if self.obstacle_img:
+            try:
+                self.scaled_obstacle = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
+            except Exception as e:
+                print(f"Error scaling dirty_water.png: {e}")
+                self.scaled_obstacle = None # Fallback
+
+        # Process fish sprite sheets for animation
+        if self.fish_left_spritesheet:
+            self.fish_left_frames = [] # Ensure list is empty
+            for i in range(FISH_NUM_FRAMES):
+                try:
+                    frame_x = i * FISH_FRAME_WIDTH
+                    original_frame = self.fish_left_spritesheet.subsurface(pygame.Rect(frame_x, 0, FISH_FRAME_WIDTH, FISH_FRAME_HEIGHT))
+                    scaled_frame = pygame.transform.scale(original_frame, (self.cell_size, self.cell_size))
+                    self.fish_left_frames.append(scaled_frame)
+                except Exception as e:
+                    print(f"Error processing frame {i} for fish_sprite1.png: {e}")
+            if not self.fish_left_frames:
+                 print("Warning: No animation frames loaded for left fish.")
+
+        if self.fish_right_spritesheet:
+            self.fish_right_frames = [] # Ensure list is empty
+            for i in range(FISH_NUM_FRAMES):
+                try:
+                    frame_x = i * FISH_FRAME_WIDTH
+                    original_frame = self.fish_right_spritesheet.subsurface(pygame.Rect(frame_x, 0, FISH_FRAME_WIDTH, FISH_FRAME_HEIGHT))
+                    scaled_frame = pygame.transform.scale(original_frame, (self.cell_size, self.cell_size))
+                    self.fish_right_frames.append(scaled_frame)
+                except Exception as e:
+                    print(f"Error processing frame {i} for fish_sprite_2.png: {e}")
+            if not self.fish_right_frames:
+                print("Warning: No animation frames loaded for right fish.")
     def draw_maze(self, offset_x=0):
         # Vẽ mê cung với offset_x để vẽ ở khung trái hoặc phải
         for y in range(len(self.maze)):
@@ -148,12 +222,21 @@ class GameWindow:
                 rect_x = offset_x + self.maze_offset_x + x * self.cell_size
                 rect_y = self.maze_offset_y + y * self.cell_size
                 
-                if cell == 0:  # Tường - sử dụng rock_wall image
-                    self.screen.blit(self.scaled_wall, (rect_x, rect_y))
-                elif cell == 1:  # Đường đi - sử dụng background image
+                # Luôn vẽ background trước
+                if self.scaled_background: # Kiểm tra nếu ảnh background load được
                     self.screen.blit(self.scaled_background, (rect_x, rect_y))
+                else: # Fallback nếu ảnh background lỗi
+                    pygame.draw.rect(self.screen, self.WHITE, (rect_x, rect_y, self.cell_size, self.cell_size))
+
+                if cell == 0:  # Tường - sử dụng rock_wall image
+                    if self.scaled_wall:
+                        self.screen.blit(self.scaled_wall, (rect_x, rect_y))
+                    # Không có fallback cho tường, vì nếu tường lỗi thì nền trắng sẽ hiện ra
                 elif cell == 2:  # Chướng ngại vật - sử dụng dirty_water image
-                    self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
+                    if self.scaled_obstacle:
+                        self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
+                    # Fallback cho chướng ngại vật có thể là một màu khác nếu muốn
+                # Ô cell == 1 (đường đi) đã được xử lý bằng cách vẽ background ở trên
     
     def draw_frames(self):
         # Vẽ khung bên trái
@@ -185,11 +268,46 @@ class GameWindow:
             color_player = self.BLACK
         elif offset_x != 0 and not isplayer:
             x,y = self.com_2_pos
-            color_player = self.RED
-            print(x,y)
+            # color_player = self.RED # Sẽ được xử lý bởi logic chọn ảnh/fallback bên dưới
+            # print(x,y) # Loại bỏ dòng debug
+        
         location_x = x * self.cell_size + self.maze_offset_x + offset_x
-        location_y = y * self.cell_size +self.maze_offset_y
-        pygame.draw.rect(self.screen,color_player,(location_x,location_y,self.cell_size,self.cell_size))
+        location_y = y * self.cell_size + self.maze_offset_y
+
+        current_fish_image = None
+        fallback_color = self.BLACK
+        facing_right_state = True # Default, assuming sprite faces right
+
+        if offset_x == 0: # Khung bên trái
+            if isplayer: # Player 1
+                if self.fish_left_frames:
+                    current_fish_image = self.fish_left_frames[self.fish_left_anim_idx]
+                fallback_color = self.BLUE
+                facing_right_state = self.player_1_facing_right
+            else: # COM 1
+                if self.fish_left_frames:
+                    current_fish_image = self.fish_left_frames[self.fish_left_anim_idx]
+                fallback_color = self.BLACK
+                facing_right_state = self.com_1_facing_right
+        else: # Khung bên phải
+            if isplayer: # Player 2
+                if self.fish_right_frames:
+                    current_fish_image = self.fish_right_frames[self.fish_right_anim_idx]
+                fallback_color = self.RED
+                facing_right_state = self.player_2_facing_right
+            else: # COM 2
+                if self.fish_right_frames:
+                    current_fish_image = self.fish_right_frames[self.fish_right_anim_idx]
+                fallback_color = self.RED
+                facing_right_state = self.com_2_facing_right
+
+        image_to_draw = current_fish_image
+        if current_fish_image:
+            if not facing_right_state: # If should be facing left (and original sprite faces right)
+                image_to_draw = pygame.transform.flip(current_fish_image, True, False)
+            self.screen.blit(image_to_draw, (location_x, location_y))
+        else:
+            pygame.draw.rect(self.screen, fallback_color, (location_x, location_y, self.cell_size, self.cell_size))
     
     def move(self,dx, dy,player):
         new_x = player[0] + dx
@@ -239,6 +357,7 @@ class GameWindow:
             
             # Vẽ 2 khung và mê cung 
             self.draw_frames()
+            self._update_animations() # Update fish animations
             if self.player1 == True:
                 self.draw_players()
             if self.player2 == True:
@@ -248,19 +367,31 @@ class GameWindow:
                     if self.solver1 is not None and self.solver1.done():
                         self.path1 = self.solver1.result()
                         self.solver1 = None
-                    if self.path1 is not None:
+                    if self.path1 is not None and self.com_1_index < len(self.path1):
+                        old_x_com1 = self.com_1_pos[0]
                         self.com_1_pos = list(self.path1[self.com_1_index])
+                        new_x_com1 = self.com_1_pos[0]
+                        if new_x_com1 < old_x_com1:
+                            self.com_1_facing_right = False
+                        elif new_x_com1 > old_x_com1:
+                            self.com_1_facing_right = True
                         self.com1_slow = now + aldelay
                         if self.com_1_index < len(self.path1)-1:
                             self.com_1_index+=1
             if now >= self.com2_slow:
                 if self.com2 == True:
                     if self.solver2 is not None and self.solver2.done():
-                        self.path2 = self.solver2.result()  
+                        self.path2 = self.solver2.result()
                         print(self.path2)
-                        self.solver2 = None  
-                    if self.path2 is not None:
+                        self.solver2 = None
+                    if self.path2 is not None and self.com_2_index < len(self.path2):
+                        old_x_com2 = self.com_2_pos[0]
                         self.com_2_pos = list(self.path2[self.com_2_index])
+                        new_x_com2 = self.com_2_pos[0]
+                        if new_x_com2 < old_x_com2:
+                            self.com_2_facing_right = False
+                        elif new_x_com2 > old_x_com2:
+                            self.com_2_facing_right = True
                         self.com2_slow = now + aldelay
                         if self.com_2_index < len(self.path2)-1:
                             self.com_2_index+=1
@@ -271,43 +402,44 @@ class GameWindow:
                 self.draw_players(self.frame_width, isplayer=False) 
             keys = pygame.key.get_pressed()
             if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos and  self.com_1_pos != self.goal_pos and  self.com_2_pos != self.goal_pos:
+                # Player 2 (Arrow keys)
                 if now >= self.delay2time:
                     moved2 = False
                     if keys[pygame.K_LEFT]:
-                        self.move(-1, 0,self.player_2_pos)
+                        self.move(-1, 0, self.player_2_pos)
+                        self.player_2_facing_right = False # Moved left
                         moved2 = True
-
                     elif keys[pygame.K_RIGHT]:
-                        self.move(1, 0,self.player_2_pos)
+                        self.move(1, 0, self.player_2_pos)
+                        self.player_2_facing_right = True  # Moved right
                         moved2 = True
-
                     elif keys[pygame.K_UP]:
-                        self.move(0, -1,self.player_2_pos)
+                        self.move(0, -1,self.player_2_pos) # Vertical move, no change
                         moved2 = True
-
                     elif keys[pygame.K_DOWN]:
-                        self.move(0, 1,self.player_2_pos)
+                        self.move(0, 1,self.player_2_pos)  # Vertical move, no change
                         moved2 = True
                     if (moved2):
                         x,y = self.player_2_pos
                         if self.maze[y][x] == 2:
                             self.delay2time = now + cooldowns
-
+                
+                # Player 1 (WASD)
                 if now >= self.delay1time:
                     moved1 = False
-                
-                    if keys[pygame.K_w]:
-                        self.move(0, -1,self.player_1_pos)
-                        moved1 = True
-                    elif keys[pygame.K_s]:
-                        self.move(0, 1,self.player_1_pos)
-                        moved1 = True
-
-                    elif keys[pygame.K_a]:
-                        self.move(-1, 0,self.player_1_pos)
+                    if keys[pygame.K_a]:
+                        self.move(-1, 0, self.player_1_pos)
+                        self.player_1_facing_right = False # Moved left
                         moved1 = True
                     elif keys[pygame.K_d]:
-                        self.move(1, 0,self.player_1_pos)
+                        self.move(1, 0, self.player_1_pos)
+                        self.player_1_facing_right = True  # Moved right
+                        moved1 = True
+                    elif keys[pygame.K_w]:
+                        self.move(0, -1,self.player_1_pos) # Vertical move, no change in horizontal facing
+                        moved1 = True
+                    elif keys[pygame.K_s]:
+                        self.move(0, 1,self.player_1_pos)  # Vertical move, no change in horizontal facing
                         moved1 = True
                     if (moved1):
                         x,y = self.player_1_pos
