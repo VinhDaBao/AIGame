@@ -6,12 +6,18 @@ images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
 class GameWindow:
-    def __init__(self, level="Easy",mode ="PVP"):
+    def __init__(self, level="Easy",mode ="Player vs Player"):
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
+        print(self.mode)
+        # Tạo trạng thái tham 
+        self.player1 = False
+        self.player2 = False
+        self.com1 = False
+        self.com2 = False
         # Lưu level hiện tại
         self.level = level
         # Lưu vị trí ban đầu 2 người chơi
@@ -46,7 +52,17 @@ class GameWindow:
 
         # Tạo mê cung
         self.init_maze()
-        
+    def get_mode_settings(self):
+        if self.mode == "Player vs Player":
+            print("OVO")
+            self.player1 = True
+            self.player2 = True
+        elif self.mode == "Player vs Machine":
+            self.player1 = True
+            self.com1 = True
+        else:
+            self.com1 = True
+            self.com2 = True
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
@@ -167,6 +183,7 @@ class GameWindow:
         pygame.display.flip()
    
     def run(self):
+        self.get_mode_settings()
         clock = pygame.time.Clock()
         running = True
         
@@ -185,10 +202,12 @@ class GameWindow:
             # Xóa màn hình
             self.screen.fill(self.BLACK)
             
-            # Vẽ 2 khung và mê cung
+            # Vẽ 2 khung và mê cung 
             self.draw_frames()
-            self.draw_players()
-            self.draw_players(self.frame_width)
+            if self.player1 == True:
+                self.draw_players()
+            if self.player2 == True:
+                self.draw_players(self.frame_width)
             keys = pygame.key.get_pressed()
             if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos:
                 if now >= self.delay2time:

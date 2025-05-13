@@ -30,7 +30,7 @@ level_menu = LevelMenu(screen)
 
 # Trạng thái game
 current_menu = "main"  # "main", "mode" hoặc "level"
-selected_mode = None
+selected_mode = "Player vs Player"
 selected_level = "Easy"
 
 # Vòng lặp chính
@@ -59,7 +59,7 @@ while running:
             # Tạo và chạy cửa sổ game mới
             endless =  True
             while endless:
-                game_window = GameWindow(level=selected_level)
+                game_window = GameWindow(level=selected_level,mode=selected_mode)  
                 endless = game_window.run()  # Chạy cửa sổ game
             
             # Sau khi game kết thúc, khởi tạo lại menu
