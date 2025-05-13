@@ -4,6 +4,7 @@ from maze import MazeGenerator
 import os
 images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
+cooldowns = 200
 class GameWindow:
     def __init__(self, level="Easy",mode ="PVP"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -15,7 +16,9 @@ class GameWindow:
         self.level = level
         # Lưu vị trí ban đầu 2 người chơi
         self.player_1_pos = [0,1]
+        self.delay1time = 0
         self.player_2_pos = [0,1]
+        self.delay2time = 0
         # Vị trí thắng
         self.goal_pos = None
         # Màu sắc
@@ -154,7 +157,7 @@ class GameWindow:
     def show_win_message(self, message):
         if self.end_game_time == None:
             self.end_game_time =  pygame.time.get_ticks()
-        elif pygame.time.get_ticks() - self.end_game_time >= 2000:
+        elif pygame.time.get_ticks() - self.end_game_time >= 1000:
             self.game_run = False
         
         font = pygame.font.SysFont(font_path, 60)  
@@ -168,6 +171,8 @@ class GameWindow:
         running = True
         
         while running:
+            now = pygame.time.get_ticks()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -186,24 +191,50 @@ class GameWindow:
             self.draw_players(self.frame_width)
             keys = pygame.key.get_pressed()
             if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos:
-                if keys[pygame.K_LEFT]:
-                    self.move(-1, 0,self.player_2_pos)
-                elif keys[pygame.K_RIGHT]:
-                    self.move(1, 0,self.player_2_pos)
-                elif keys[pygame.K_UP]:
-                    self.move(0, -1,self.player_2_pos)
-                elif keys[pygame.K_DOWN]:
-                    self.move(0, 1,self.player_2_pos)
-            
-                if keys[pygame.K_w]:
-                    self.move(0, -1,self.player_1_pos)
-                elif keys[pygame.K_s]:
-                    self.move(0, 1,self.player_1_pos)
-                elif keys[pygame.K_a]:
-                    self.move(-1, 0,self.player_1_pos)
-                elif keys[pygame.K_d]:
-                    self.move(1, 0,self.player_1_pos)
-            
+                if now >= self.delay2time:
+                    moved2 = False
+                    if keys[pygame.K_LEFT]:
+                        self.move(-1, 0,self.player_2_pos)
+                        moved2 = True
+
+                    elif keys[pygame.K_RIGHT]:
+                        self.move(1, 0,self.player_2_pos)
+                        moved2 = True
+
+                    elif keys[pygame.K_UP]:
+                        self.move(0, -1,self.player_2_pos)
+                        moved2 = True
+
+                    elif keys[pygame.K_DOWN]:
+                        self.move(0, 1,self.player_2_pos)
+                        moved2 = True
+                    if (moved2):
+                        x,y = self.player_2_pos
+                        if self.maze[y][x] == 2:
+                            self.delay2time = now + cooldowns
+
+                if now >= self.delay1time:
+                    moved1 = False
+                
+                    if keys[pygame.K_w]:
+                        self.move(0, -1,self.player_1_pos)
+                        moved1 = True
+                    elif keys[pygame.K_s]:
+                        self.move(0, 1,self.player_1_pos)
+                        moved1 = True
+
+                    elif keys[pygame.K_a]:
+                        self.move(-1, 0,self.player_1_pos)
+                        moved1 = True
+                    elif keys[pygame.K_d]:
+                        self.move(1, 0,self.player_1_pos)
+                        moved1 = True
+                    if (moved1):
+                        x,y = self.player_1_pos
+                        if self.maze[y][x] == 2:
+                            self.delay1time = now + cooldowns
+                            print(self.delay1time)
+
 
 
             if self.player_1_pos == self.goal_pos:
