@@ -4,6 +4,7 @@
 import pygame
 import os
 from settings import *
+from settings import TEXT_BUTTON_COLOR, TEXT_BUTTON_HOVER_COLOR, TEXT_BUTTON_SELECTED_COLOR, TEXT_TITLE_COLOR
 from utils import load_image, draw_text
 
 # Đường dẫn đến font Press Start 2P
@@ -271,6 +272,157 @@ class LevelMenu:
                 return button['text']
         
         return None
+
+
+#<--------------------------------Algorithm Menu------------------------------------>
+class AlgorithmMenu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.sprite_sheet = load_image("Menu.png") # Reusing menu background sprite
+        self.FRAME_WIDTH = 400
+        self.FRAME_HEIGHT = 400
+        sheet_width = self.sprite_sheet.get_width()
+        self.NUM_FRAMES = sheet_width // self.FRAME_WIDTH
+
+        if self.NUM_FRAMES == 0:
+            print("AlgorithmMenu: Sprite sheet Menu.png không hợp lệ, sử dụng background mặc định")
+            self.frames = [pygame.Surface((WIDTH, HEIGHT))]
+            self.frames[0].fill((0,0,0))
+        else:
+            self.frames = [
+                self.sprite_sheet.subsurface(pygame.Rect(i * self.FRAME_WIDTH, 0, self.FRAME_WIDTH, self.FRAME_HEIGHT))
+                for i in range(self.NUM_FRAMES)
+            ]
+        
+        self.frame_index = 0
+        self.frame_delay = 10 
+        self.frame_counter = 0
+
+        self.menu_frame = load_image("menu_background.png") 
+        self.menu_frame_rect = self.menu_frame.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+        try:
+            self.font = pygame.font.Font(FONT_PATH, 12)        # Was 14 (For buttons UCS, A*, Confirm, Back)
+            self.small_font = pygame.font.Font(FONT_PATH, 8)   # Was 10 (For labels Fish 1, Fish 2)
+            self.title_font = pygame.font.Font(FONT_PATH, 16)  # Was 18 (For "Select Algorithms" title)
+        except Exception as e:
+            print(f"Font loading error in AlgorithmMenu: {e}")
+            self.font = pygame.font.Font(None, 18)       # Was 20
+            self.small_font = pygame.font.Font(None, 14) # Was 16
+            self.title_font = pygame.font.Font(None, 22) # Was 26
+
+        self.algorithms = ["UCS", "A*"] # Add more algorithms here later
+        self.selected_algo_left = self.algorithms[0] # Default selection for left fish
+        self.selected_algo_right = self.algorithms[0] # Default selection for right fish
+
+        self.buttons = []
+        self._create_buttons() 
+
+    def _create_buttons(self):
+        self.buttons = [] 
+        button_width = 80
+        button_height = 30
+        column_spacing = 130 
+        left_column_center_x = WIDTH // 2 - column_spacing // 2
+        right_column_center_x = WIDTH // 2 + column_spacing // 2
+        
+        title_height = self.menu_frame_rect.top + 40
+        label_y_offset = title_height + 40
+        button_start_y = label_y_offset + 30
+        button_y_spacing = 40
+
+        # Algorithm selection buttons for Left Frame (Fish 1)
+        for i, algo_name in enumerate(self.algorithms):
+            rect = pygame.Rect(0, 0, button_width, button_height)
+            rect.center = (left_column_center_x, button_start_y + i * button_y_spacing)
+            self.buttons.append({"text": algo_name, "id": f"left_{algo_name}", "rect": rect, "frame": "left"})
+
+        # Algorithm selection buttons for Right Frame (Fish 2)
+        for i, algo_name in enumerate(self.algorithms):
+            rect = pygame.Rect(0, 0, button_width, button_height)
+            rect.center = (right_column_center_x, button_start_y + i * button_y_spacing)
+            self.buttons.append({"text": algo_name, "id": f"right_{algo_name}", "rect": rect, "frame": "right"})
+        
+        # Confirm button
+        confirm_rect = pygame.Rect(0,0, 100, 35)
+        confirm_rect.center = (WIDTH // 2, self.menu_frame_rect.bottom - 75)
+        self.buttons.append({"text": "Confirm", "id": "confirm", "rect": confirm_rect, "frame": "action"})
+
+        # Back button
+        back_rect = pygame.Rect(0,0, 80, 30)
+        back_rect.center = (WIDTH // 2, self.menu_frame_rect.bottom - 35)
+        self.buttons.append({"text": "Back", "id": "back", "rect": back_rect, "frame": "action"})
+
+    def update_animation(self):
+        self.frame_counter += 1
+        if self.frame_counter >= self.frame_delay:
+            self.frame_index = (self.frame_index + 1) % self.NUM_FRAMES
+            self.frame_counter = 0
+
+    def draw(self):
+        self.screen.blit(self.frames[self.frame_index], (0, 0))
+        self.screen.blit(self.menu_frame, self.menu_frame_rect)
+
+        title_text = "Select Algorithms"
+        draw_text(self.screen, title_text, self.title_font, TITLE_COLOR, WIDTH // 2, self.menu_frame_rect.top + 25, center=True)
+        
+        column_spacing = 130 
+        left_column_center_x = WIDTH // 2 - column_spacing // 2
+        right_column_center_x = WIDTH // 2 + column_spacing // 2
+        label_y_pos = self.menu_frame_rect.top + 70
+
+        draw_text(self.screen, "Fish 1 (Left)", self.small_font, TEXT_TITLE_COLOR, left_column_center_x, label_y_pos, center=True)
+        draw_text(self.screen, "Fish 2 (Right)", self.small_font, TEXT_TITLE_COLOR, right_column_center_x, label_y_pos, center=True)
+
+        mouse_pos = pygame.mouse.get_pos()
+        for button_info in self.buttons:
+            text = button_info["text"]
+            rect = button_info["rect"]
+            frame_type = button_info["frame"]
+
+            color = TEXT_BUTTON_COLOR # Default color
+            if rect.collidepoint(mouse_pos):
+                color = TEXT_BUTTON_HOVER_COLOR # Hover color
+            
+            # Selected color
+            if frame_type == "left" and self.selected_algo_left == text:
+                color = TEXT_BUTTON_SELECTED_COLOR
+            elif frame_type == "right" and self.selected_algo_right == text:
+                color = TEXT_BUTTON_SELECTED_COLOR
+            
+            draw_text(self.screen, text, self.font, color, rect.centerx, rect.centery, center=True)
+            # pygame.draw.rect(self.screen, (255,0,0), rect, 1) # For debugging button rects - uncomment if needed
+
+    def handle_events(self, mouse_pos, mouse_pressed, mouse_just_released):
+        if mouse_just_released: 
+            for button_info in self.buttons:
+                if button_info["rect"].collidepoint(mouse_pos):
+                    button_id = button_info["id"]
+                    button_text = button_info["text"]
+                    frame_type = button_info["frame"]
+
+                    if frame_type == "left":
+                        self.selected_algo_left = button_text
+                        # print(f"Selected Left Algorithm: {self.selected_algo_left}")
+                        return None # Stay on this menu to reflect selection
+                    elif frame_type == "right":
+                        self.selected_algo_right = button_text
+                        # print(f"Selected Right Algorithm: {self.selected_algo_right}")
+                        return None # Stay on this menu to reflect selection
+                    elif button_id == "confirm":
+                        if self.selected_algo_left and self.selected_algo_right:
+                            # print(f"Algorithms confirmed: Left - {self.selected_algo_left}, Right - {self.selected_algo_right}")
+                            return {"action": "confirm", "left_algo": self.selected_algo_left, "right_algo": self.selected_algo_right}
+                        else:
+                            # This case should not be hit if defaults are set and UI prevents deselection
+                            print("Error: Algorithm selection somehow missing. Both must be selected.") 
+                            return None # Stay on menu, or provide on-screen error
+                    elif button_id == "back":
+                        # print("Back to Main Menu from AlgorithmMenu")
+                        return {"action": "back"}
+        return None
+#<--------------------------------End Algorithm Menu-------------------------------->
+
 
 class MainMenu:
     def __init__(self, screen):
