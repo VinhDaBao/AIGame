@@ -15,7 +15,8 @@ class MazeGenerator:
         self.height = height if height % 2 == 1 else height + 1
         # Khởi tạo ma trận mê cung với tất cả là tường (0)
         self.maze = [[0 for _ in range(self.width)] for _ in range(self.height)]
-        
+        self.entrance = (0, 1)
+        self.exit_point = (self.width - 1, self.height - 2)
     def remove_wall(self, x1: int, y1: int, x2: int, y2: int):
         """
         Phá tường giữa hai ô.
@@ -115,8 +116,18 @@ class MazeGenerator:
                             self.maze[wall_y][wall_x] = 1
                             break
                 attempts += 1
-        
-        # Tạo lối vào và lối ra
+        # Bọc lại hàng ngoài để tránh thủng tường ngoài
+        rows = len(self.maze)
+        cols = len(self.maze[0])
+
+        for j in range(cols):
+            self.maze[0][j] = 0           
+            self.maze[rows - 1][j] = 0     
+
+        for i in range(1, rows - 1):
+            self.maze[i][0] = 0            
+            self.maze[i][cols - 1] = 0  
+        # Tạo lối vào, lối ra  
         entrance = (0, 1)
         exit_point = (self.width - 1, self.height - 2)
         self.maze[entrance[1]][entrance[0]] = 1  # Lối vào

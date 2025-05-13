@@ -58,7 +58,7 @@ while running:
         result = main_menu.handle_events(mouse_pos, current_mouse_state, mouse_just_released)
         if result == "play":
             # Tạo và chạy cửa sổ game mới
-            game_window = GameWindow()
+            game_window = GameWindow(level=selected_level)
             game_window.run()  # Chạy cửa sổ game
             
             # Sau khi game kết thúc, khởi tạo lại menu

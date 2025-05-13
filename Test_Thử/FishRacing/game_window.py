@@ -3,17 +3,24 @@ from settings import *
 from maze import MazeGenerator
 import os
 images = os.path.join(ASSETS_PATH,"images")
+
 class GameWindow:
     def __init__(self, level="Easy",mode ="PVP"):
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
+        #Lưu chế độ chơi
         self.mode = mode
         # Lưu level hiện tại
         self.level = level
-        
+        # Lưu vị trí ban đầu 2 người chơi
+        self.player_1_pos = [0,1]
+        self.player_2_pos = [0,1]
+    
         # Màu sắc
         self.BLACK = (0, 0, 0)
+        self.BLUE = (0,0,255)
+        self.RED = (255,0,0)
         self.WHITE = (255, 255, 255)
         self.GRAY = (128, 128, 128)
         
@@ -37,7 +44,7 @@ class GameWindow:
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
             return {
-                "cell_size": 25,  # Ô lớn hơn, dễ di chuyển
+                "cell_size": 35,  # Ô lớn hơn, dễ di chuyển
                 "obstacle_percentage": 5,  # Ít chướng ngại vật
                 "extra_paths": 30  # Nhiều đường đi phụ
             }
@@ -122,8 +129,24 @@ class GameWindow:
         
         # Vẽ mê cung trong khung phải
         self.draw_maze(self.frame_width)
-    def draw_players(self):
-        pass
+    def draw_players(self,offset_x=0):
+        if offset_x == 0:
+            x,y = self.player_1_pos
+            color_player = self.BLUE
+        else:
+            x,y = self.player_2_pos
+            color_player = self.RED
+        location_x = x * self.cell_size + self.maze_offset_x + offset_x
+        location_y = y * self.cell_size +self.maze_offset_y
+        pygame.draw.rect(self.screen,color_player,(location_x,location_y,self.cell_size,self.cell_size))
+    def move(self,dx, dy,player):
+        new_x = player[0] + dx
+        new_y = player[1] + dy
+        if 0 <=new_x and new_x < len(self.maze[0]) and 0 <= new_y and new_y <= len(self.maze):
+            if self.maze[new_y][new_x] != 0:  
+                player[0], player[1] = new_x, new_y
+                
+        
     def run(self):
         clock = pygame.time.Clock()
         running = True
@@ -136,13 +159,25 @@ class GameWindow:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:  # Nhấn R để tạo mê cung mới
                         self.init_maze()
+                    
             
             # Xóa màn hình
             self.screen.fill(self.BLACK)
             
             # Vẽ 2 khung và mê cung
             self.draw_frames()
-            
+            self.draw_players()
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_LEFT]:
+                self.move(-1, 0,self.player_2_pos)
+            elif keys[pygame.K_RIGHT]:
+                self.move(1, 0,self.player_2_pos)
+            elif keys[pygame.K_UP]:
+                self.move(0, -1,self.player_2_pos)
+            elif keys[pygame.K_DOWN]:
+                self.move(0, 1,self.player_2_pos)
+
+            self.draw_players(self.frame_width)
             # Cập nhật màn hình
             pygame.display.flip()
             clock.tick(FPS) 

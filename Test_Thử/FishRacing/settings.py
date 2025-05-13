@@ -5,7 +5,9 @@ import os
 WIDTH = 400
 HEIGHT = 400
 
-FPS = 60
+
+
+FPS = 30
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_PATH = os.path.join(BASE_DIR, "assets")
