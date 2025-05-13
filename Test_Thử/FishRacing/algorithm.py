@@ -200,7 +200,12 @@ class Al_solution():
                 nx, ny = state[0] + dx, state[1] + dy
                 if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and (self.MAZE[ny][nx] == 1 or self.MAZE[ny][nx] == 2):
                     next_state = (nx, ny)
-                    reward = 100 if next_state == self.END else -1
+                    if next_state == self.END:
+                        reward = 100 
+                    elif self.MAZE[next_state[1]][next_state[0]]==2:
+                        reward = -3
+                    else:
+                        reward =-1
                     q_table[state][action] = (1 - alpha) * q_table[state][action] + alpha * (
                         reward + gamma * max(q_table[next_state])
                     )
