@@ -13,6 +13,10 @@ FONT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "
 # Màu sắc
 TITLE_COLOR = (8, 50, 50)  # Màu mới cho tiêu đề
 
+# Algorithm Menu Colors
+ALGO_MENU_GREEN = (85, 150, 85) # Background color for algorithm menu
+ALGO_MENU_BORDER_COLOR = (200, 200, 200) # Border color for algorithm menu
+
 class ModeMenu:
     def __init__(self, screen):
         self.screen = screen
@@ -298,7 +302,9 @@ class AlgorithmMenu:
         self.frame_delay = 10 
         self.frame_counter = 0
 
-        self.menu_frame = load_image("menu_background.png") 
+        self.menu_frame = pygame.Surface((self.FRAME_WIDTH, self.FRAME_HEIGHT))
+        self.menu_frame.fill(ALGO_MENU_GREEN) # Use the new green color
+        pygame.draw.rect(self.menu_frame, ALGO_MENU_BORDER_COLOR, self.menu_frame.get_rect(), 2) # Draw border
         self.menu_frame_rect = self.menu_frame.get_rect(center=(WIDTH // 2, HEIGHT // 2))
 
         try:
@@ -313,7 +319,7 @@ class AlgorithmMenu:
 
         self.show_left_select = show_left_select
         self.show_right_select = show_right_select
-        self.algorithms = ["UCS", "A*"] # Add more algorithms here later
+        self.algorithms = ["UCS", "A*", "Backtracking", "AND-OR", "Genetic", "Q-Learning"] # Updated list
             
         if self.show_left_select:
             self.selected_algo_left = self.algorithms[0] 
@@ -360,7 +366,7 @@ class AlgorithmMenu:
             # Position buttons closer to the main title, as fish labels will be hidden
             button_start_y = title_height + 60 # Start Y for algorithm buttons, closer to title
             
-        button_y_spacing = 40
+        button_y_spacing = 35
 
         # Algorithm selection buttons for Left Frame (Fish 1)
         if self.show_left_select:
