@@ -85,10 +85,10 @@ class GameWindow:
         self.fish_anim_timer = 0
 
         # Fish orientation state (True if facing right, False if facing left)
-        self.player_1_facing_right = True
-        self.player_2_facing_right = True
-        self.com_1_facing_right = True
-        self.com_2_facing_right = True
+        self.player_1_orientation = "up"
+        self.player_2_orientation = "up"
+        self.com_1_orientation = "up"
+        self.com_2_orientation = "up"
         
         self.game_run = True
         self.end_game_time =  None
@@ -287,38 +287,40 @@ class GameWindow:
         location_y = y * self.cell_size +self.maze_offset_y
         current_fish_image = None
         fallback_color = self.BLACK
-        facing_right_state = True # Default, assuming sprite faces right
+        orientation_state = "right" # Default orientation
 
-        if offset_x == 0: # Khung bên trái
-            if isplayer: # Player 1
-                if self.fish_left_frames:
-                    current_fish_image = self.fish_left_frames[self.fish_left_anim_idx]
+        if offset_x == 0: # Khung bên trái (Player 1 or COM 1)
+            if self.fish_left_frames:
+                current_fish_image = self.fish_left_frames[self.fish_left_anim_idx]
+            if isplayer:
                 fallback_color = self.BLUE
-                facing_right_state = self.player_1_facing_right
-            else: # COM 1
-                if self.fish_left_frames:
-                    current_fish_image = self.fish_left_frames[self.fish_left_anim_idx]
+                orientation_state = self.player_1_orientation
+            else:
                 fallback_color = self.BLACK
-                facing_right_state = self.com_1_facing_right
-        else: # Khung bên phải
-            if isplayer: # Player 2
-                if self.fish_right_frames:
-                    current_fish_image = self.fish_right_frames[self.fish_right_anim_idx]
+                orientation_state = self.com_1_orientation
+        else: # Khung bên phải (Player 2 or COM 2)
+            if self.fish_right_frames:
+                current_fish_image = self.fish_right_frames[self.fish_right_anim_idx]
+            if isplayer:
                 fallback_color = self.RED
-                facing_right_state = self.player_2_facing_right
-            else: # COM 2
-                if self.fish_right_frames:
-                    current_fish_image = self.fish_right_frames[self.fish_right_anim_idx]
+                orientation_state = self.player_2_orientation
+            else:
                 fallback_color = self.RED
-                facing_right_state = self.com_2_facing_right
+                orientation_state = self.com_2_orientation
 
         image_to_draw = current_fish_image
         if current_fish_image:
-            if not facing_right_state: # If should be facing left (and original sprite faces right)
-                image_to_draw = pygame.transform.flip(current_fish_image, True, False)
+            if orientation_state == "down": # Original is UP, target is DOWN
+                image_to_draw = pygame.transform.rotate(current_fish_image, 180)
+            elif orientation_state == "left": # Original is UP, target is LEFT
+                image_to_draw = pygame.transform.rotate(current_fish_image, 90) # Rotate 90 deg counter-clockwise
+            elif orientation_state == "right": # Original is UP, target is RIGHT
+                image_to_draw = pygame.transform.rotate(current_fish_image, -90) # Rotate -90 deg (or 270 deg counter-clockwise)
+            # If orientation_state is "up", no transformation needed as it matches the assumed original sprite orientation
             self.screen.blit(image_to_draw, (location_x, location_y))
         else:
             pygame.draw.rect(self.screen, fallback_color, (location_x, location_y, self.cell_size, self.cell_size))
+    
     
     def move(self,dx, dy,player):
         new_x = player[0] + dx
@@ -355,12 +357,13 @@ class GameWindow:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:  # Nhấn R để tạo mê cung mới
                         self.init_maze()
-                        self.get_mode_settings()
                         self.player_1_pos = [0,1]
                         self.player_2_pos = [0,1]
                         self.com_1_pos = [0,1]
                         self.com_2_pos = [0,1]
 
+                        self.get_mode_settings()
+                        
                     
             
             # Xóa màn hình
@@ -382,8 +385,11 @@ class GameWindow:
                         if self.path1 is not None:
                             self.com_1_pos = list(self.path1[self.com_1_index])
                             x,y= self.com_1_pos
-                            self.com1_slow = now + aldelay + 200 if self.maze[y][x] == 2 else 0
+                            
                             if self.com_1_index < len(self.path1)-1:
+                                self.com1_slow = (now + aldelay) + (200 if self.maze[y][x] == 2 else 0)
+                                                                    
+                                print(now, self.com1_slow)
                                 self.com_1_index+=1
                 if now >= self.com2_slow:
                     if self.com2 == True:
@@ -394,8 +400,9 @@ class GameWindow:
                         if self.path2 is not None:
                             self.com_2_pos = list(self.path2[self.com_2_index])
                             x,y = self.com_2_pos
-                            self.com2_slow = now + aldelay + 200 if self.maze[y][x] == 2 else 0
                             if self.com_2_index < len(self.path2)-1:
+                                self.com2_slow = (now + aldelay) +( 200 if self.maze[y][x] == 2 else 0)
+
                                 self.com_2_index+=1
                                 
             if self.com1 == True:                 
