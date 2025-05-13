@@ -7,7 +7,7 @@ HEIGHT = 400
 
 
 
-FPS = 30
+FPS = 24
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_PATH = os.path.join(BASE_DIR, "assets")
