@@ -64,49 +64,31 @@ class Al_solution():
 
         return []
 
-    def ac3(self):
-        # Mô hình hóa mê cung như một CSP
-        variables = [(x, y) for x in range(self.WIDTH) for y in range(self.HEIGHT) if self.MAZE[y][x] in [1, 2]]
-        domains = {var: [(nx, ny) for dx, dy in DIRECTIONS 
-                         if 0 <= (nx := var[0] + dx) < self.WIDTH and 0 <= (ny := var[1] + dy) < self.HEIGHT 
-                         and self.MAZE[ny][nx] in [1, 2]] for var in variables}
-        arcs = [(var1, var2) for var1 in variables for var2 in domains[var1]]
-
-        def revise(arc):
-            x1, y1 = arc[0]
-            x2, y2 = arc[1]
-            revised = False
-            domain1 = domains[(x1, y1)].copy()
-            for v in domain1:
-                if not any((x2, y2) in domains.get((nx, ny), []) for nx, ny in domains[(x1, y1)]):
-                    domains[(x1, y1)].remove(v)
-                    revised = True
-            return revised
-
-        queue = deque(arcs)
-        while queue:
-            arc = queue.popleft()
-            if revise(arc):
-                x1, y1 = arc[0]
-                for x2, y2 in variables:
-                    if (x2, y2) != arc[1] and (x2, y2, x1, y1) in arcs:
-                        queue.append((x2, y2, x1, y1))
-
-        # Tìm đường đi từ START đến END
-        path = []
-        current = self.START
-        visited = set()
-        while current != self.END and current in domains:
-            path.append(current)
+    def backtracking(self):
+        """
+        Thuật toán backtracking để tìm đường đi trong mê cung
+        """
+        def dfs(current, path, visited):
+            if current == self.END:
+                return path + [current]
+            
             visited.add(current)
-            next_pos = next((pos for pos in domains[current] if pos not in visited), None)
-            if not next_pos:
-                break
-            current = next_pos
-        if current == self.END:
-            path.append(self.END)
-            return path
-        return []
+            x, y = current
+            
+            for dx, dy in DIRECTIONS:
+                nx, ny = x + dx, y + dy
+                if (0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and 
+                    (self.MAZE[ny][nx] == 1 or self.MAZE[ny][nx] == 2) and 
+                    (nx, ny) not in visited):
+                    result = dfs((nx, ny), path + [current], visited.copy())
+                    if result:
+                        return result
+            
+            return None
+        
+        result = dfs(self.START, [], set())
+        return result if result else []
+
 
     def and_or_search(self):
         def or_search(state, path, visited):
@@ -268,8 +250,8 @@ print("Đường đi UCS:", solver.ucs())
 print("Độ dài đường đi UCS:", len(solver.ucs()))
 print("Đường đi A*:", solver.a_star())
 print("Độ dài đường đi A*:", len(solver.a_star()))
-print("Đường đi AC-3:", solver.ac3())
-print("Độ dài đường đi AC-3:", len(solver.ac3()))
+print("Đường đi backtracking:", solver.backtracking())
+print("Độ dài đường đi backtracking:", len(solver.backtracking()))
 print("Đường đi AND-OR Search:", solver.and_or_search())
 print("Độ dài đường đi AND-OR Search:", len(solver.and_or_search()))
 print("Đường đi Genetic Algorithm:", solver.genetic_algorithm())
@@ -291,7 +273,7 @@ def print_maze_with_path(maze, path, title):
 
 print_maze_with_path(maze, solver.ucs(), "Mê cung với đường đi UCS")
 print_maze_with_path(maze, solver.a_star(), "Mê cung với đường đi A*")
-print_maze_with_path(maze, solver.ac3(), "Mê cung với đường đi AC-3")
+print_maze_with_path(maze, solver.backtracking(), "Mê cung với đường đi backtracking")
 print_maze_with_path(maze, solver.and_or_search(), "Mê cung với đường đi AND-OR Search")
 print_maze_with_path(maze, solver.genetic_algorithm(), "Mê cung với đường đi Genetic Algorithm")
 print_maze_with_path(maze, solver.q_learning(), "Mê cung với đường đi Q-Learning")
