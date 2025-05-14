@@ -16,7 +16,7 @@ aldelay = 100
 FISH_FRAME_WIDTH = 64
 FISH_FRAME_HEIGHT = 64
 FISH_NUM_FRAMES = 7
-FISH_ANIM_DELAY = 5 # Adjust for animation speed (frames per game tick)
+FISH_ANIM_DELAY = 5 
 class GameWindow:
     def __init__(self, level="Easy",mode ="Player vs Player",algo_left = "UCS", algo_right= "UCS"):
         # Kích thước cửa sổ game lớn hơn menu
@@ -24,7 +24,7 @@ class GameWindow:
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
-        self.test_mode = True
+        self.test_mode = False
         print(algo_left,algo_right)
         # Tạo trạng thái tham 
         self.player1 = False
@@ -155,6 +155,30 @@ class GameWindow:
                 self.fish_left_anim_idx = (self.fish_left_anim_idx + 1) % len(self.fish_left_frames)
             if self.fish_right_frames: # Only update if frames exist
                 self.fish_right_anim_idx = (self.fish_right_anim_idx + 1) % len(self.fish_right_frames)
+
+    def update_orientation(self, dx, dy, player_type):
+        # Update orientation based on movement direction
+        if dx > 0:
+            new_orientation = "right"
+        elif dx < 0:
+            new_orientation = "left"
+        elif dy > 0:
+            new_orientation = "down"
+        elif dy < 0:
+            new_orientation = "up"
+        else:
+            return  # No movement, no orientation change
+
+        # Update the appropriate orientation variable
+        if player_type == "player1":
+            self.player_1_orientation = new_orientation
+        elif player_type == "player2":
+            self.player_2_orientation = new_orientation
+        elif player_type == "com1":
+            self.com_1_orientation = new_orientation
+        elif player_type == "com2":
+            self.com_2_orientation = new_orientation
+
     def get_level_settings(self):
         """Trả về các thiết lập dựa trên level."""
         if self.level == "Easy":
@@ -333,6 +357,11 @@ class GameWindow:
         if 0 <=new_x and new_x < len(self.maze[0]) and 0 <= new_y and new_y <= len(self.maze):
             if self.maze[new_y][new_x] != 0:  
                 player[0], player[1] = new_x, new_y
+                # Determine which player is moving and update orientation
+                if player == self.player_1_pos:
+                    self.update_orientation(dx, dy, "player1")
+                elif player == self.player_2_pos:
+                    self.update_orientation(dx, dy, "player2")
                 
     def show_win_message(self, message):
         if self.end_game_time == None:
@@ -370,6 +399,9 @@ class GameWindow:
             
             # Vẽ 2 khung và mê cung 
             self.draw_frames()
+            self._update_animations()
+
+
             if self.player1 == True:
                 self.draw_players()
             if self.player2 == True:
@@ -381,30 +413,47 @@ class GameWindow:
                         if self.solver1 is not None and self.solver1.done():
                             self.path1 = self.solver1.result()
                             self.solver1 = None
-                        if self.path1 is not None:
-                            self.com_1_pos = list(self.path1[self.com_1_index])
-                            x,y= self.com_1_pos
 
-                            self.com1_slow = (now + aldelay) + (cooldowns if self.maze[y][x] == 2 else 0)
-                            self.maze2[y][x] =3
-                            if self.com_1_index < len(self.path1)-1:
-                                
+                        if self.path1 is not None:
+                            next_pos = list( self.path1 [ self.com_1_index ] )
+                            #Hướng di chuyển
+                            dx = next_pos[0 ] - self.com_1_pos[0 ]
+                            dy = next_pos[ 1 ] - self.com_1_pos[1 ]
+                            
+                            #Cập nhật vị trí và hướng
+                            self.com_1_pos = next_pos
+                            self.update_orientation(dx, dy, "com1")
+                            #self.com_1_pos = list(self.path1[self.com_1_index])  ( cũ )
+                            x,y= self.com_1_pos      
+
+                            if self.com_1_index <  len(self.path1) - 1:
+                                self.com1_slow = (now + aldelay) + (cooldowns if self.maze[y][x] == 2 else 0)
+                                self.maze2[y][x] =3
                                 self.com_1_index+=1
+
                 if now >= self.com2_slow:
                     if self.com2 == True:
                         if self.solver2 is not None and self.solver2.done():
                             self.path2 = self.solver2.result()
                             print("done",self.path2)  
                             self.solver2 = None  
-                        if self.path2 is not None:
-                            self.com_2_pos = list(self.path2[self.com_2_index])
-                            x,y = self.com_2_pos
-                            self.com2_slow = (now + aldelay) +( 200 if self.maze[y][x] == 2 else 0) 
-                            self.maze2[y][x] =3
-                            print(self.com_2_index)
-                            if self.com_2_index < len(self.path2)-1:
 
-                                
+                        if self.path2 is not None:
+                            next_pos = list(self.path2[self.com_2_index])
+                            #Hướng di chuyển 
+                            dx = next_pos[0 ] - self.com_2_pos[ 0 ]
+                            dy=next_pos[ 1]  - self.com_2_pos[ 1 ]
+
+                            #Cập nhật vị trí và hướng
+                            self.com_2_pos = next_pos
+                            self.update_orientation(dx, dy, "com2")
+                            #self.com_2_pos = list(self.path2[self.com_2_index]) ( cũ )
+                            x,y = self.com_2_pos
+                            
+                            if self.com_2_index < len(self.path2 ) - 1:
+                                self.com2_slow = (now + aldelay) +( 200 if self.maze[y][x] == 2 else 0) 
+                                self.maze2[y][x] =3
+                                print(self.com_2_index)
                                 self.com_2_index+=1
                                 
             if self.com1 == True:                 
@@ -413,44 +462,50 @@ class GameWindow:
                 self.draw_players(self.frame_width, isplayer=False) 
             keys = pygame.key.get_pressed()
             if self.player_2_pos != self.goal_pos and self.player_1_pos != self.goal_pos and  self.com_1_pos != self.goal_pos and  self.com_2_pos != self.goal_pos:
+                #Phím người chơi 2
                 if now >= self.delay2time:
                     moved2 = False
-                    if keys[pygame.K_LEFT]:
+                    if keys[pygame.K_LEFT]:  #trái
                         self.move(-1, 0,self.player_2_pos)
                         moved2 = True
 
-                    elif keys[pygame.K_RIGHT]:
+                    elif keys[pygame.K_RIGHT]: #phải
                         self.move(1, 0,self.player_2_pos)
                         moved2 = True
 
-                    elif keys[pygame.K_UP]:
+                    elif keys[pygame.K_UP ]: #lên
                         self.move(0, -1,self.player_2_pos)
                         moved2 = True
 
-                    elif keys[pygame.K_DOWN]:
+                    elif keys[pygame.K_DOWN]:  #xuống
                         self.move(0, 1,self.player_2_pos)
                         moved2 = True
+
                     if (moved2):
                         x,y = self.player_2_pos
                         if self.maze[y][x] == 2:
                             self.delay2time = now + cooldowns
 
+
+                #Phím người chơi1
                 if now >= self.delay1time:
                     moved1 = False
-                
-                    if keys[pygame.K_w]:
+                    if keys[pygame.K_w]:  #Lên
                         self.move(0, -1,self.player_1_pos)
                         moved1 = True
-                    elif keys[pygame.K_s]:
+
+                    elif keys[pygame.K_s]:  #xuống
                         self.move(0, 1,self.player_1_pos)
                         moved1 = True
 
-                    elif keys[pygame.K_a]:
+                    elif keys[pygame.K_a]:    #trái
                         self.move(-1, 0,self.player_1_pos)
                         moved1 = True
-                    elif keys[pygame.K_d]:
+
+                    elif keys[pygame.K_d]:  #Phải
                         self.move(1, 0,self.player_1_pos)
                         moved1 = True
+
                     if (moved1):
                         x,y = self.player_1_pos
                         if self.maze[y][x] == 2:
