@@ -3,6 +3,8 @@ import random
 import numpy as np
 from collections import defaultdict, deque
 import maze
+from maze import MazeGenerator
+import time
 DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Các hướng di chuyển (lên, xuống, trái, phải)
 
 class Al_solution():
@@ -91,7 +93,15 @@ class Al_solution():
 
 
     def and_or_search(self):
+        now = time.time()
+        running = True
         def or_search(state, path, visited):
+            nonlocal running
+            intime = time.time()
+            if intime - now >5:
+                running = False
+            if running == False:
+                return []
             if state == self.END:
                 return [path + [state]]
             if state in visited:
@@ -111,7 +121,7 @@ class Al_solution():
         solutions = or_search(self.START, [], set())
         return solutions[0] if solutions else None
 
-    def genetic_algorithm(self, population_size=50, generations=100):
+    def genetic_algorithm(self, population_size=100, generations=700):
         def generate_path():
             path = [self.START]
             current = self.START
@@ -174,14 +184,14 @@ class Al_solution():
             while len(new_population) < population_size:
                 parent1, parent2 = random.choices(population[:20], k=2)
                 child = crossover(parent1, parent2)
-                if random.random() < 0.1:
+                if random.random() < 0.3:
                     child = mutate(child)
                 new_population.append(child)
             population = new_population
         best_path = max(population, key=fitness)
         if best_path[-1] == self.END:
             return best_path
-        return None
+        return best_path
 
     def q_learning(self, episodes=1000, alpha=0.1, gamma=0.9, epsilon=0.1):
         q_table = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # [up, down, left, right]
@@ -227,7 +237,7 @@ class Al_solution():
                 break
         if path[-1] == self.END:
             return path
-        return None
+        return path
 if __name__ =="__main__":
     # Mê cung
     maze = [
@@ -245,10 +255,10 @@ if __name__ =="__main__":
     ]
 
     start = (0, 1)
-    end = (20, 9)
-
+    end = (8, 13)
+    maze1 = MazeGenerator(9,15).generate(obstacle_percentage=5)
     # Khởi tạo và chạy thử
-    solver = Al_solution(start, end, maze)
+    solver = Al_solution(start, end, maze1)
 
     # Chạy các thuật toán
     print("Đường đi UCS:", solver.ucs())
@@ -274,8 +284,10 @@ if __name__ =="__main__":
         for row in maze_copy:
             print(' '.join(str(cell) for cell in row))
 
-    print_maze_with_path(maze, solver.ucs(), "Mê cung với đường đi UCS")
-    print_maze_with_path(maze, solver.a_star(), "Mê cung với đường đi A*")
-    print_maze_with_path(maze, solver.backtracking(), "Mê cung với đường đi backtracking")
-    print_maze_with_path(maze, solver.and_or_search(), "Mê cung với đường đi AND-OR Search")
-    print_maze_with_path(maze, solver.q_learning(), "Mê cung với đường đi Q-Learning")
+    print_maze_with_path(maze1, solver.ucs(), "Mê cung với đường đi UCS")
+    print_maze_with_path(maze1, solver.a_star(), "Mê cung với đường đi A*")
+    print_maze_with_path(maze1, solver.backtracking(), "Mê cung với đường đi backtracking")
+    print_maze_with_path(maze1, solver.and_or_search(), "Mê cung với đường đi AND-OR Search")
+    print_maze_with_path(maze1, solver.q_learning(), "Mê cung với đường đi Q-Learning")
+    print_maze_with_path(maze1,solver.genetic_algorithm(),"Gen")
+    

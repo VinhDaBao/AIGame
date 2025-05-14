@@ -6,7 +6,6 @@ import sys
 from settings import *
 from menu import MainMenu, ModeMenu, LevelMenu, AlgorithmMenu
 from game_window import GameWindow
-
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 # Khởi tạo Pygame
 pygame.init()
