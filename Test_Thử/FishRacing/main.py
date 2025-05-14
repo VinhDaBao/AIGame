@@ -6,9 +6,11 @@ import sys
 from settings import *
 from menu import MainMenu, ModeMenu, LevelMenu, AlgorithmMenu
 from game_window import GameWindow
+from sound_manager import SoundManager
 os.environ['SDL_VIDEO_CENTERED'] = '1'
-# Khởi tạo Pygame
+# Khởi tạo Pygame và âm thanh
 pygame.init()
+pygame.mixer.init()
 
 def init_menu():
     # Thiết lập cửa sổ menu
@@ -22,10 +24,14 @@ screen = init_menu()
 # Tạo clock để kiểm soát FPS
 clock = pygame.time.Clock()
 
-#Tạo các menu
-main_menu = MainMenu(screen)
-mode_menu = ModeMenu(screen)
-level_menu = LevelMenu(screen)
+# Khởi tạo sound manager
+sound_manager = SoundManager()
+sound_manager.play_background()
+
+# Tạo các menu
+main_menu = MainMenu(screen, sound_manager)
+mode_menu = ModeMenu(screen, sound_manager)
+level_menu = LevelMenu(screen, sound_manager)
 algorithm_menu = None # Sẽ được khởi tạo động
 
 # Trạng thái game
@@ -67,12 +73,12 @@ while running:
                 print(f"Starting game with Left: {selected_algorithm_left}, Right: {selected_algorithm_right}, Mode: {selected_mode}, Level: {selected_level}")
                 endless = True
                 while endless:
-                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right)
+                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right, sound_manager=sound_manager)
                     endless = game_window.run()
                 screen = init_menu() # Khởi tạo lại màn hình và các menu sau khi game kết thúc
-                main_menu = MainMenu(screen)
-                mode_menu = ModeMenu(screen)
-                level_menu = LevelMenu(screen)
+                main_menu = MainMenu(screen, sound_manager)
+                mode_menu = ModeMenu(screen, sound_manager)
+                level_menu = LevelMenu(screen, sound_manager)
                 algorithm_menu = None # Đặt lại algorithm_menu
                 current_menu = "main"
             else:
@@ -131,13 +137,13 @@ while running:
                 print(f"Starting game with Left: {selected_algorithm_left}, Right: {selected_algorithm_right}, Mode: {selected_mode}, Level: {selected_level}")
                 endless = True
                 while endless:
-                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right)
+                    game_window = GameWindow(level=selected_level, mode=selected_mode, algo_left=selected_algorithm_left, algo_right=selected_algorithm_right, sound_manager=sound_manager)
                     endless = game_window.run()  # Chạy cửa sổ game
                 
                 screen = init_menu()
-                main_menu = MainMenu(screen)
-                mode_menu = ModeMenu(screen)
-                level_menu = LevelMenu(screen)
+                main_menu = MainMenu(screen, sound_manager)
+                mode_menu = ModeMenu(screen, sound_manager)
+                level_menu = LevelMenu(screen, sound_manager)
                 algorithm_menu = None # Đặt lại algorithm_menu
                 current_menu = "main"
 

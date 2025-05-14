@@ -18,8 +18,9 @@ ALGO_MENU_GREEN = (85, 150, 85) # Background color for algorithm menu
 ALGO_MENU_BORDER_COLOR = (200, 200, 200) # Border color for algorithm menu
 
 class ModeMenu:
-    def __init__(self, screen):
+    def __init__(self, screen, sound_manager=None):
         self.screen = screen
+        self.sound_manager = sound_manager
         
         # Load sprite sheet background
         self.sprite_sheet = load_image("Menu.png")
@@ -136,6 +137,8 @@ class ModeMenu:
         self.back_is_pressed = back_on_button and mouse_pressed
         
         if back_on_button and mouse_just_released:
+            if self.sound_manager:
+                self.sound_manager.play_sound("CLICK")
             return "back"
         
         # Kiểm tra các nút chế độ chơi
@@ -143,13 +146,17 @@ class ModeMenu:
             button['is_pressed'] = button['rect'].collidepoint(mouse_pos) and mouse_pressed
             
             if button['rect'].collidepoint(mouse_pos) and mouse_just_released:
+                if self.sound_manager:
+                    self.sound_manager.play_sound("CLICK")
                 return button['text']
         
         return None
 
 class LevelMenu:
-    def __init__(self, screen):
+    
+    def __init__(self, screen, sound_manager=None):
         self.screen = screen
+        self.sound_manager = sound_manager
         
         # Load sprite sheet background
         self.sprite_sheet = load_image("Menu.png")
@@ -266,6 +273,8 @@ class LevelMenu:
         self.back_is_pressed = back_on_button and mouse_pressed
         
         if back_on_button and mouse_just_released:
+            if self.sound_manager:
+                self.sound_manager.play_sound("CLICK")
             return "back"
         
         # Kiểm tra các nút level
@@ -273,6 +282,8 @@ class LevelMenu:
             button['is_pressed'] = button['rect'].collidepoint(mouse_pos) and mouse_pressed
             
             if button['rect'].collidepoint(mouse_pos) and mouse_just_released:
+                if self.sound_manager:
+                    self.sound_manager.play_sound("CLICK")
                 return button['text']
         
         return None
@@ -280,8 +291,9 @@ class LevelMenu:
 
 #<--------------------------------Algorithm Menu------------------------------------>
 class AlgorithmMenu:
-    def __init__(self, screen, show_left_select=True, show_right_select=True):
+    def __init__(self, screen, sound_manager=None, show_left_select=True, show_right_select=True):
         self.screen = screen
+        self.sound_manager = sound_manager
         self.sprite_sheet = load_image("Menu.png") # Reusing menu background sprite
         self.FRAME_WIDTH = 400
         self.FRAME_HEIGHT = 400
@@ -451,6 +463,8 @@ class AlgorithmMenu:
         if mouse_just_released: 
             for button_info in self.buttons:
                 if button_info["rect"].collidepoint(mouse_pos):
+                    if self.sound_manager:
+                        self.sound_manager.play_sound("CLICK")
                     button_id = button_info["id"]
                     button_text = button_info["text"]
                     frame_type = button_info["frame"]
@@ -479,9 +493,14 @@ class AlgorithmMenu:
 
 
 class MainMenu:
-    def __init__(self, screen):
+    def __init__(self, screen, sound_manager=None):
         self.screen = screen
+        self.sound_manager = sound_manager
         
+        # Play menu background music
+        if self.sound_manager:
+            self.sound_manager.play_background("MENU_BACKGROUND")
+            
         # Load sprite sheet background
         self.sprite_sheet = load_image("Menu.png")
         
@@ -590,11 +609,17 @@ class MainMenu:
         # Kiểm tra sự kiện thả chuột (mouse up) trên các nút
         if play_on_button and mouse_just_released:
             print("Play button clicked!")
+            if self.sound_manager:
+                self.sound_manager.play_sound("CLICK")
             return "play"
         elif mode_on_button and mouse_just_released:
             print("Mode button clicked!")
+            if self.sound_manager:
+                self.sound_manager.play_sound("CLICK")
             return "mode"
         elif level_on_button and mouse_just_released:
             print("Level button clicked!")
+            if self.sound_manager:
+                self.sound_manager.play_sound("CLICK")
             return "level"
         return None

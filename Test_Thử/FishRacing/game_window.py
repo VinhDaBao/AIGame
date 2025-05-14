@@ -18,7 +18,14 @@ FISH_FRAME_HEIGHT = 64
 FISH_NUM_FRAMES = 7
 FISH_ANIM_DELAY = 5 
 class GameWindow:
-    def __init__(self, level="Easy",mode ="Player vs Player",algo_left = "UCS", algo_right= "UCS"):
+    def __init__(self, level="Easy", mode="Player vs Player", algo_left="UCS", algo_right="UCS", sound_manager=None):
+        self.sound_manager = sound_manager
+        
+        # Switch to gameplay background music
+        if self.sound_manager:
+            self.sound_manager.stop_background()
+            self.sound_manager.play_background("BACKGROUND")
+            
         # Kích thước cửa sổ game lớn hơn menu
         self.width = WIDTH * 2  # Gấp đôi chiều rộng menu
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
@@ -365,7 +372,9 @@ class GameWindow:
                 
     def show_win_message(self, message):
         if self.end_game_time == None:
-            self.end_game_time =  pygame.time.get_ticks()
+            self.end_game_time = pygame.time.get_ticks()
+            if self.sound_manager:
+                self.sound_manager.play_sound("WIN")
         elif pygame.time.get_ticks() - self.end_game_time >= 1000:
             self.game_run = False
         
@@ -386,6 +395,10 @@ class GameWindow:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.sound_manager:
+                        self.sound_manager.stop_background()
+                        self.sound_manager.reload_sound_effects()  # Reload sound effects
+                        self.sound_manager.play_background("MENU_BACKGROUND")
                     running = False
                     return False
                 elif event.type == pygame.KEYDOWN:
