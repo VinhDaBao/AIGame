@@ -121,77 +121,234 @@ class Al_solution():
         solutions = or_search(self.START, [], set())
         return solutions[0] if solutions else None
 
-    def genetic_algorithm(self, population_size=100, generations=700):
+    def genetic_algorithm(self, population_size=150, generations=1000):
+    # Hàm sinh đường đi ngẫu nhiên từ điểm bắt đầu
         def generate_path():
             path = [self.START]
             current = self.START
-            while current != self.END and len(path) < self.WIDTH * self.HEIGHT:
+            visited = {current}
+            stuck_count = 0
+            
+            while current != self.END and len(path) < self.WIDTH * self.HEIGHT * 2 and stuck_count < 20:
                 x, y = current
                 neighbors = [(x + dx, y + dy) for dx, dy in DIRECTIONS 
-                             if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
-                             and self.MAZE[y + dy][x + dx] in [1, 2] and (x + dx, y + dy) not in path]
-                if not neighbors:
+                            if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
+                            and (self.MAZE[y + dy][x + dx] == 1 or self.MAZE[y + dy][x + dx] == 2)]
+                
+                # Ưu tiên các ô chưa thăm và gần đích
+                unvisited = [n for n in neighbors if n not in visited]
+                if unvisited:
+                    # Có probability thấp để đi theo hướng tới đích
+                    if random.random() < 0.3:
+                        # Sắp xếp theo khoảng cách tới đích (ưu tiên gần đích)
+                        unvisited.sort(key=lambda n: abs(n[0] - self.END[0]) + abs(n[1] - self.END[1]))
+                        current = unvisited[0]
+                    else:
+                        current = random.choice(unvisited)
+                    visited.add(current)
+                    path.append(current)
+                    stuck_count = 0
+                elif neighbors:  # Nếu không có ô chưa thăm nhưng còn đường đi
+                    current = random.choice(neighbors)
+                    path.append(current)
+                    stuck_count += 1
+                else:
+                    # Không còn đường đi, bị kẹt
                     break
-                current = random.choice(neighbors)
-                path.append(current)
+                    
             return path
 
+        # Đánh giá mức độ phù hợp của đường đi
         def fitness(path):
-            if path[-1] != self.END:
-                return 1 / (self.heuristic(path[-1], self.END) + len(path) + 1)
-            return 1 / (len(path) + 1)
+            if not path:
+                return 0
+                
+            # Kiểm tra nếu đến đích
+            if path[-1] == self.END:
+                # Càng ngắn càng tốt
+                return 1000.0 - len(path)
+            
+            # Nếu chưa đến đích, đánh giá khoảng cách Manhattan đến đích
+            distance_to_goal = abs(path[-1][0] - self.END[0]) + abs(path[-1][1] - self.END[1])
+            # Khuyến khích đường đi về hướng đích
+            return 100.0 / (distance_to_goal + 1)
 
+        # Lai ghép 2 đường đi
         def crossover(parent1, parent2):
             if len(parent1) < 2 or len(parent2) < 2:
                 return parent1
-            cut = random.randint(1, min(len(parent1), len(parent2)) - 1)
-            child = parent1[:cut]
-            current = child[-1]
-            x, y = current
-            while current != self.END and len(child) < self.WIDTH * self.HEIGHT:
-                neighbors = [(x + dx, y + dy) for dx, dy in DIRECTIONS 
-                             if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
-                             and self.MAZE[y + dy][x + dx] in [1, 2] and (x + dx, y + dy) not in child]
-                if not neighbors:
-                    break
-                current = random.choice(neighbors)
-                x, y = current
-                child.append(current)
-            return child
+                
+            # Tìm điểm chung giữa 2 đường đi
+            common_points = [point for point in parent1 if point in parent2]
+            
+            # Nếu không có điểm chung, chọn điểm ngẫu nhiên
+            if not common_points:
+                cut_point1 = random.randint(1, len(parent1) - 1)
+                child = parent1[:cut_point1]
+                return complete_path(child)
+            
+            # Chọn điểm chung làm điểm cắt
+            common_point = random.choice(common_points)
+            idx1 = parent1.index(common_point)
+            idx2 = parent2.index(common_point)
+            
+            # Tạo con từ phần đầu của parent1 và phần sau của parent2
+            child = parent1[:idx1] + parent2[idx2:]
+            
+            # Loại bỏ các điểm trùng lặp, giữ lại lần xuất hiện đầu tiên
+            unique_child = []
+            visited = set()
+            for point in child:
+                if point not in visited:
+                    visited.add(point)
+                    unique_child.append(point)
+                
+            return unique_child if unique_child else parent1
 
-        def mutate(path):
-            if len(path) < 2:
-                return path
-            idx = random.randint(1, len(path) - 1)
-            new_path = path[:idx]
-            current = new_path[-1]
-            x, y = current
-            while current != self.END and len(new_path) < self.WIDTH * self.HEIGHT:
-                neighbors = [(x + dx, y + dy) for dx, dy in DIRECTIONS 
-                             if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
-                             and self.MAZE[y + dy][x + dx] in [1, 2] and (x + dx, y + dy) not in new_path]
-                if not neighbors:
-                    break
-                current = random.choice(neighbors)
+        # Hoàn thiện đường đi
+        def complete_path(path):
+            if not path:
+                return generate_path()
+                
+            current = path[-1]
+            visited = set(path)
+            
+            while current != self.END and len(path) < self.WIDTH * self.HEIGHT * 2:
                 x, y = current
-                new_path.append(current)
+                neighbors = [(x + dx, y + dy) for dx, dy in DIRECTIONS 
+                            if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
+                            and (self.MAZE[y + dy][x + dx] == 1 or self.MAZE[y + dy][x + dx] == 2)]
+                
+                # Ưu tiên các ô chưa thăm
+                unvisited = [n for n in neighbors if n not in visited]
+                
+                if unvisited:
+                    # Có xác suất để ưu tiên hướng tới đích
+                    if random.random() < 0.4:
+                        unvisited.sort(key=lambda n: abs(n[0] - self.END[0]) + abs(n[1] - self.END[1]))
+                        current = unvisited[0]
+                    else:
+                        current = random.choice(unvisited)
+                    visited.add(current)
+                    path.append(current)
+                elif neighbors:
+                    current = random.choice(neighbors)
+                    path.append(current)
+                else:
+                    break
+                    
+            return path
+
+        # Đột biến
+        def mutate(path):
+            if len(path) < 3:
+                return path
+                
+            # Chọn đoạn để đột biến
+            start_idx = random.randint(1, len(path) - 2)
+            end_idx = random.randint(start_idx + 1, len(path) - 1)
+            
+            # Tạo đường đi mới từ điểm bắt đầu đến điểm đột biến
+            new_path = path[:start_idx]
+            
+            # Tạo đoạn đột biến mới
+            current = path[start_idx - 1]
+            visited = set(new_path)
+            
+            # Tìm đường từ điểm đột biến đến cuối đường đi
+            while current != path[end_idx] and len(new_path) < len(path) * 2:
+                x, y = current
+                neighbors = [(x + dx, y + dy) for dx, dy in DIRECTIONS 
+                            if 0 <= x + dx < self.WIDTH and 0 <= y + dy < self.HEIGHT 
+                            and (self.MAZE[y + dy][x + dx] == 1 or self.MAZE[y + dy][x + dx] == 2)]
+                
+                unvisited = [n for n in neighbors if n not in visited]
+                if unvisited:
+                    if random.random() < 0.3:
+                        unvisited.sort(key=lambda n: abs(n[0] - path[end_idx][0]) + abs(n[1] - path[end_idx][1]))
+                        current = unvisited[0]
+                    else:
+                        current = random.choice(unvisited)
+                    visited.add(current)
+                    new_path.append(current)
+                elif neighbors:
+                    current = random.choice(neighbors)
+                    new_path.append(current)
+                else:
+                    break
+            
+            # Nếu không thể kết nối đến điểm cuối, trả về đường đi ban đầu
+            if new_path[-1] != path[end_idx]:
+                return path
+                
+            # Nối phần cuối của đường đi gốc
+            new_path = new_path + path[end_idx:]
+            
             return new_path
 
-        population = [generate_path() for _ in range(population_size)]
-        for _ in range(generations):
+        # Tạo quần thể ban đầu
+        population = []
+        for _ in range(population_size):
+            path = generate_path()
+            if path[-1] == self.END:  # Chỉ chấp nhận đường đi đến đích vào quần thể ban đầu
+                population.append(path)
+            
+        # Nếu không đủ đường đi đến đích, thêm đường đi chưa đến đích
+        if len(population) < population_size // 2:
+            while len(population) < population_size:
+                path = generate_path()
+                population.append(path)
+        
+        best_solution = None
+        best_fitness = -1
+        
+        # Tiến hóa qua các thế hệ
+        for gen in range(generations):
+            # Tìm giải pháp tốt nhất trong quần thể hiện tại
+            current_best = max(population, key=fitness)
+            current_best_fitness = fitness(current_best)
+            
+            if current_best[-1] == self.END and (best_solution is None or current_best_fitness > best_fitness):
+                best_solution = current_best
+                best_fitness = current_best_fitness
+            
+            # Sắp xếp quần thể theo độ phù hợp
             population = sorted(population, key=fitness, reverse=True)
-            new_population = population[:10]
+            
+            # Chọn các cá thể tốt nhất
+            elite = population[:population_size // 10]
+            new_population = elite.copy()
+            
+            # Sinh ra quần thể mới
             while len(new_population) < population_size:
-                parent1, parent2 = random.choices(population[:20], k=2)
+                # Chọn cha mẹ bằng tournament selection
+                tournament_size = 5
+                parents = random.sample(population[:population_size // 2], tournament_size)
+                parent1 = max(parents, key=fitness)
+                
+                parents = random.sample(population[:population_size // 2], tournament_size)
+                parent2 = max(parents, key=fitness)
+                
+                # Lai ghép
                 child = crossover(parent1, parent2)
+                
+                # Đột biến với xác suất
                 if random.random() < 0.3:
                     child = mutate(child)
+                    
+                # Đảm bảo đường đi hoàn chỉnh
+                child = complete_path(child)
+                
                 new_population.append(child)
+            
             population = new_population
-        best_path = max(population, key=fitness)
-        if best_path[-1] == self.END:
-            return best_path
-        return best_path
+        
+        # Trả về đường đi tốt nhất
+        if best_solution and best_solution[-1] == self.END:
+            return best_solution
+            
+        # Nếu không tìm được đường đi đến đích, trả về đường gần đích nhất
+        return max(population, key=fitness)
 
     def q_learning(self, episodes=1000, alpha=0.1, gamma=0.9, epsilon=0.1):
         q_table = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # [up, down, left, right]
@@ -271,7 +428,8 @@ if __name__ =="__main__":
     print("Độ dài đường đi AND-OR Search:", len(solver.and_or_search()))
     print("Đường đi Q-Learning:", solver.q_learning())
     print("Độ dài đường đi Q-Learning:", len(solver.q_learning()))
-
+    print("Đường đi Q-Learning:", solver.genetic_algorithm())
+    print("Độ dài đường đi Q-Learning:", len(solver.genetic_algorithm()))
     # In mê cung với đường đi
     def print_maze_with_path(maze, path, title):
         maze_copy = [row[:] for row in maze]

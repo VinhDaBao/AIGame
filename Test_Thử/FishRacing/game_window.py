@@ -187,9 +187,9 @@ class GameWindow:
                 "obstacle_percentage": 5,  # Ít chướng ngại vật
                 "extra_paths": 30  # Nhiều đường đi phụ
             }
-        elif self.level == "Medium":
+        elif self.level == "Mid":
             return {
-                "cell_size": 20,
+                "cell_size": 25,
                 "obstacle_percentage": 15,
                 "extra_paths": 20
             }
