@@ -5,6 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import algorithm
 import utils # Thêm import utils
+import copy
 images = os.path.join(ASSETS_PATH,"images")
 font_path = os.path.join("assets", "fonts", "PressStart2P-Regular.ttf")
 cooldowns = 200
@@ -23,6 +24,7 @@ class GameWindow:
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
+        self.test_mode = True
         print(algo_left,algo_right)
         # Tạo trạng thái tham 
         self.player1 = False
@@ -33,7 +35,6 @@ class GameWindow:
         self.com2 = False
         self.path2 = None
         self.solver2= None
-
         # Lưu level hiện tại
         self.level = level
         # Lưu vị trí ban đầu 2 người chơi
@@ -196,10 +197,12 @@ class GameWindow:
         print(f"Settings: {settings}")
         
         # Tạo mê cung với thiết lập theo level
-        self.maze_generator = MazeGenerator(maze_width, maze_height)
+        self.maze_generator = MazeGenerator(maze_width, maze_height,test_mode=self.test_mode)
         self.maze = self.maze_generator.generate(
             obstacle_percentage=settings["obstacle_percentage"]
         )
+        self.maze2 = copy.deepcopy(self.maze)
+        print(self.maze2)
         self.goal_pos = [maze_width -1, maze_height -2]
 
         # Tính toán vị trí bắt đầu để căn giữa mê cung trong mỗi khung
@@ -241,6 +244,7 @@ class GameWindow:
         for y in range(len(self.maze)):
             for x in range(len(self.maze[0])):
                 cell = self.maze[y][x]
+                cell2 = self.maze2[y][x]
                 rect_x = offset_x + self.maze_offset_x + x * self.cell_size
                 rect_y = self.maze_offset_y + y * self.cell_size
                 
@@ -248,8 +252,10 @@ class GameWindow:
                     self.screen.blit(self.scaled_wall, (rect_x, rect_y))
                 elif cell == 1:  # Đường đi - sử dụng background image
                     self.screen.blit(self.scaled_background, (rect_x, rect_y))
-                elif cell == 2:  # Chướng ngại vật - sử dụng dirty_water image
+                elif cell == 2: # Chướng ngại vật - sử dụng dirty_water image
                     self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
+                if cell2 == 3 and self.test_mode == True and offset_x != 0:
+                    pygame.draw.rect(self.screen,self.RED,(rect_x,rect_y,self.cell_size,self.cell_size))
     
     def draw_frames(self):
         # Vẽ khung bên trái
@@ -282,7 +288,6 @@ class GameWindow:
         elif offset_x != 0 and not isplayer:
             x,y = self.com_2_pos
             color_player = self.RED
-            print(x,y)
         location_x = x * self.cell_size + self.maze_offset_x + offset_x
         location_y = y * self.cell_size +self.maze_offset_y
         current_fish_image = None
@@ -356,13 +361,7 @@ class GameWindow:
                     return False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:  # Nhấn R để tạo mê cung mới
-                        self.init_maze()
-                        self.player_1_pos = [0,1]
-                        self.player_2_pos = [0,1]
-                        self.com_1_pos = [0,1]
-                        self.com_2_pos = [0,1]
-
-                        self.get_mode_settings()
+                        return True
                         
                     
             
@@ -385,24 +384,27 @@ class GameWindow:
                         if self.path1 is not None:
                             self.com_1_pos = list(self.path1[self.com_1_index])
                             x,y= self.com_1_pos
-                            
+
+                            self.com1_slow = (now + aldelay) + (cooldowns if self.maze[y][x] == 2 else 0)
+                            self.maze2[y][x] =3
                             if self.com_1_index < len(self.path1)-1:
-                                self.com1_slow = (now + aldelay) + (200 if self.maze[y][x] == 2 else 0)
-                                                                    
-                                print(now, self.com1_slow)
+                                
                                 self.com_1_index+=1
                 if now >= self.com2_slow:
                     if self.com2 == True:
                         if self.solver2 is not None and self.solver2.done():
-                            self.path2 = self.solver2.result()  
-                            print(self.path2)
+                            self.path2 = self.solver2.result()
+                            print("done",self.path2)  
                             self.solver2 = None  
                         if self.path2 is not None:
                             self.com_2_pos = list(self.path2[self.com_2_index])
                             x,y = self.com_2_pos
+                            self.com2_slow = (now + aldelay) +( 200 if self.maze[y][x] == 2 else 0) 
+                            self.maze2[y][x] =3
+                            print(self.com_2_index)
                             if self.com_2_index < len(self.path2)-1:
-                                self.com2_slow = (now + aldelay) +( 200 if self.maze[y][x] == 2 else 0)
 
+                                
                                 self.com_2_index+=1
                                 
             if self.com1 == True:                 
