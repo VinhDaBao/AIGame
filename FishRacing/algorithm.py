@@ -121,7 +121,7 @@ class Al_solution():
         solutions = or_search(self.START, [], set())
         return solutions[0] if solutions else None
 
-    def genetic_algorithm(self, population_size=150, generations=1000):
+    def genetic_algorithm(self, population_size=100, generations=700):
     # Hàm sinh đường đi ngẫu nhiên từ điểm bắt đầu
         def generate_path():
             path = [self.START]
