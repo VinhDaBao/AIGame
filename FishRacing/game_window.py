@@ -31,7 +31,7 @@ class GameWindow:
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
-        self.test_mode = False
+        self.test_mode = True
         print(algo_left,algo_right)
         # Tạo trạng thái tham 
         self.player1 = False
@@ -233,6 +233,7 @@ class GameWindow:
             obstacle_percentage=settings["obstacle_percentage"]
         )
         self.maze2 = copy.deepcopy(self.maze)
+        self.maze3 = copy.deepcopy(self.maze)
         print(self.maze2)
         self.goal_pos = [maze_width -1, maze_height -2]
 
@@ -276,6 +277,7 @@ class GameWindow:
             for x in range(len(self.maze[0])):
                 cell = self.maze[y][x]
                 cell2 = self.maze2[y][x]
+                cell3 = self.maze3[y][x]
                 rect_x = offset_x + self.maze_offset_x + x * self.cell_size
                 rect_y = self.maze_offset_y + y * self.cell_size
                 
@@ -287,6 +289,8 @@ class GameWindow:
                     self.screen.blit(self.scaled_obstacle, (rect_x, rect_y))
                 if cell2 == 3 and self.test_mode == True and offset_x != 0:
                     pygame.draw.rect(self.screen,self.RED,(rect_x,rect_y,self.cell_size,self.cell_size))
+                if cell3 == 4 and self.test_mode == True and offset_x == 0:
+                    pygame.draw.rect(self.screen,self.BLUE,(rect_x,rect_y,self.cell_size,self.cell_size))
     
     def draw_frames(self):
         # Vẽ khung bên trái
@@ -441,7 +445,7 @@ class GameWindow:
 
                             if self.com_1_index <  len(self.path1) - 1:
                                 self.com1_slow = (now + aldelay) + (cooldowns if self.maze[y][x] == 2 else 0)
-                                self.maze2[y][x] =3
+                                self.maze3[y][x] =4
                                 self.com_1_index+=1
 
                 if now >= self.com2_slow:
@@ -534,10 +538,12 @@ class GameWindow:
             if self.player_2_pos == self.goal_pos:
 
                 self.show_win_message("Player 2 Win!")
-            if self.com_1_pos == self.goal_pos:
-                self.show_win_message("Computer 1 Win!")
-            if self.com_2_pos == self.goal_pos:
-                self.show_win_message("Computer 2 Win!")
+            if self.com_1_pos == self.goal_pos and self.com_2_pos == self.goal_pos:
+                    self.show_win_message(f"{self.com1_algo} Draw {self.com2_algo}")
+            elif self.com_1_pos == self.goal_pos:
+                self.show_win_message(f"Computer 1 {self.com1_algo} Win!")
+            elif self.com_2_pos == self.goal_pos:
+                self.show_win_message(f"Computer 2 {self.com2_algo} Win!")
             if self.game_run == False:
                 running = False
             # Cập nhật màn hình
