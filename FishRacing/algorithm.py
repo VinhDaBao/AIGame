@@ -40,7 +40,8 @@ class Al_solution():
 
     def heuristic(self, current, end):
         # Hàm heuristic tính khoảng cách Manhattan
-        return abs(current[0] - end[0]) + abs(current[1] - end[1]) + 3 if self.MAZE[current[1]][current[0]] == 2 else 0 
+        manhattan_distance = abs(current[0] - end[0]) + abs(current[1] - end[1])
+        return manhattan_distance + 3 if self.MAZE[current[1]][current[0]] == 2 else manhattan_distance
 
     def a_star(self):
         priority_queue = [(0 + self.heuristic(self.START, self.END), 0, self.START, [])]  # (f(n), g(n), (x, y), path)
