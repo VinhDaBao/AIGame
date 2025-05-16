@@ -55,7 +55,7 @@ Dự án sử dụng 6 thuật toán tìm kiếm thuộc 6 nhóm khác nhau đ�
 - **Loại**: Tìm kiếm dựa trên tiến hóa tự nhiên.
 - **Mô tả**: Sử dụng chọn lọc, lai ghép, đột biến để tìm lời giải tối ưu qua các thế hệ.
 - **Ứng dụng**: Tìm chiến lược di chuyển tối ưu trong trò chơi đua cá.
-![GEN](https://github.com/user-attachments/assets/bc39f4c5-79a9-4b77-ae87-54b1d8b49aa7)
+![GEN](https://github.com/user-attachments/assets/0a926e9e-f0c2-4586-9077-83c3d6d8038d)
 
 ## 6. Q-Learning
 - **Loại**: Học tăng cường (Reinforcement Learning).
