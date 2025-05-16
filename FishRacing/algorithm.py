@@ -112,16 +112,45 @@ class Al_solution():
             for dx, dy in DIRECTIONS:
                 nx, ny = state[0] + dx, state[1] + dy
                 if 0 <= ny < self.HEIGHT and 0 <= nx < self.WIDTH and (self.MAZE[ny][nx] == 1 or self.MAZE[ny][nx] == 2):
-                    and_solutions = and_search((nx, ny), path + [state], visited.copy())
-                    solutions.extend(and_solutions)
+                    and_solutions = and_search(RESULTS(state,(dx,dy)), path + [state], visited.copy())
+                    if and_solutions:
+                        solutions.append(and_solutions)
             return solutions
 
-        def and_search(state, path, visited):
-            return or_search(state, path, visited)
+        def and_search(states, path, visited):
+            all_solutions = []
+            for s in states:
+                plan = or_search(s,path,visited.copy())
+                if not plan:
+                    return []
+                all_solutions.append(plan)
+            return all_solutions
+        def RESULTS(state, action):
+            dx, dy = action
+            x, y = state
 
+            possible_states = []
+
+            nx1, ny1 = x + dx, y + dy
+            if 0 <= ny1 < self.HEIGHT and 0 <= nx1 < self.WIDTH and (self.MAZE[ny1][nx1] == 1 or self.MAZE[ny1][nx1] == 2):
+                possible_states.append((nx1, ny1))
+
+            if random.random() < 0.2:
+                other_directions = [(dx2, dy2) for dx2, dy2 in DIRECTIONS if (dx2, dy2) != (dx, dy)]
+                dx2, dy2 = random.choice(other_directions)
+                nx2, ny2 = x + dx2, y + dy2
+                if 0 <= ny2 < self.HEIGHT and 0 <= nx2 < self.WIDTH and (self.MAZE[ny2][nx2] == 1 or self.MAZE[ny2][nx2] == 2):
+                    possible_states.append((nx2, ny2))
+            return possible_states
+
+        def extract_plan(plan):
+            while isinstance(plan, list)  and len(plan) > 0:
+                if isinstance(plan[0],tuple):
+                    return list(plan)
+                plan = plan[0]
+            return plan
         solutions = or_search(self.START, [], set())
-        return solutions[0] if solutions else None
-
+        return extract_plan(solutions) if solutions else None
     def genetic_algorithm(self, population_size=100, generations=700):
     # Hàm sinh đường đi ngẫu nhiên từ điểm bắt đầu
         def generate_path():
