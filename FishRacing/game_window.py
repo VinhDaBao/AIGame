@@ -31,7 +31,7 @@ class GameWindow:
         self.height = HEIGHT * 1.5  # Tăng chiều cao lên 1.5 lần
         #Lưu chế độ chơi
         self.mode = mode
-        self.test_mode = True
+        self.test_mode = False
         print(algo_left,algo_right)
         # Tạo trạng thái tham 
         self.player1 = False
@@ -375,6 +375,8 @@ class GameWindow:
                     self.update_orientation(dx, dy, "player2")
                 
     def show_win_message(self, message):
+        if self.test_mode:
+            return
         if self.end_game_time == None:
             self.end_game_time = pygame.time.get_ticks()
             if self.sound_manager:

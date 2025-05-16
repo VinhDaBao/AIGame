@@ -99,7 +99,7 @@ class Al_solution():
         def or_search(state, path, visited):
             nonlocal running
             intime = time.time()
-            if intime - now >5:
+            if intime - now >10:
                 running = False
             if running == False:
                 return []
@@ -442,8 +442,8 @@ if __name__ =="__main__":
     ]
 
     start = (0, 1)
-    end = (8, 13)
-    maze1 = MazeGenerator(9,15).generate(obstacle_percentage=5)
+    end = (14, 23)
+    maze1 = MazeGenerator(15,25).generate(obstacle_percentage=5)
     # Khởi tạo và chạy thử
     solver = Al_solution(start, end, maze1)
 

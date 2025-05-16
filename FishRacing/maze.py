@@ -40,8 +40,29 @@ mazetest = [
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]
-
-
+mazetestmedium =[
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+    [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1, 2, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 2, 0],
+    [0, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+    [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+    [0, 1, 2, 1, 0, 1, 1, 1, 0, 2, 0, 1, 0],
+    [0, 2, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 1, 2, 0, 1, 1, 1, 0],
+    [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0],
+    [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0],
+    [0, 1, 1, 1, 1, 2, 2, 2, 0, 1, 1, 1, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+    [0, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+]
 class MazeGenerator:
     def __init__(self, width: int, height: int,test_mode = False):
         """
@@ -79,6 +100,8 @@ class MazeGenerator:
             if self.width == 23 and self.height == 37:
                 print("TESSSSSSSSSSSSS")
                 return mazetest
+            if self.width == 13 and self.height == 21:
+                return mazetestmedium
         """
         Tạo mê cung sử dụng thuật toán Depth-First Search,
         sau đó phá thêm tường ngẫu nhiên và thêm chướng ngại vật.
@@ -300,7 +323,7 @@ class MazeGenerator:
 
 # Ví dụ sử dụng
 if __name__ == "__main__":
-    maze = MazeGenerator(23, 37)
+    maze = MazeGenerator(13, 21)
     # Tạo mê cung với 5% đường đi là chướng ngại vật
     maze.generate(obstacle_percentage=5)
     
